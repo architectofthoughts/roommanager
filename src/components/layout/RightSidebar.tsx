@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
-import type { FurnitureCategory } from '../../types';
+import type { FurnitureCategory, BorderStyle } from '../../types';
 
 const CATEGORIES: { value: FurnitureCategory; label: string }[] = [
   { value: 'storage', label: '수납장' },
@@ -49,14 +49,16 @@ export default function RightSidebar() {
   const [newItemQty, setNewItemQty] = useState(1);
   const [newItemCat, setNewItemCat] = useState('기타');
   const [newItemMemo, setNewItemMemo] = useState('');
+  const [newItemFloor, setNewItemFloor] = useState(1);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const handleAddItem = () => {
     if (!selectedFurnitureId || !newItemName.trim()) return;
-    addItem(selectedFurnitureId, newItemName.trim(), newItemQty, newItemCat, newItemMemo.trim());
+    addItem(selectedFurnitureId, newItemName.trim(), newItemQty, newItemCat, newItemMemo.trim(), newItemFloor);
     setNewItemName('');
     setNewItemQty(1);
     setNewItemMemo('');
+    setNewItemFloor(1);
   };
 
   const handleDeleteFurniture = () => {
@@ -143,6 +145,50 @@ export default function RightSidebar() {
               />
             ))}
           </div>
+        </div>
+
+        {/* Border Style */}
+        <div className="mb-2">
+          <span className="text-[11px] text-text-tertiary mb-1 block">외곽선</span>
+          <div className="flex gap-1.5 items-center mb-1.5">
+            {(['solid', 'dashed', 'none'] as BorderStyle[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => updateFurniture(furniture.id, { borderStyle: s })}
+                className={`flex-1 py-1 text-[10px] rounded border transition-default ${
+                  (furniture.borderStyle ?? 'solid') === s
+                    ? 'border-accent-primary bg-accent-primary/10 text-accent-secondary font-medium'
+                    : 'border-border-primary bg-bg-secondary text-text-tertiary hover:bg-bg-tertiary'
+                }`}
+              >
+                {s === 'solid' ? '실선' : s === 'dashed' ? '점선' : '없음'}
+              </button>
+            ))}
+          </div>
+          {(furniture.borderStyle ?? 'solid') !== 'none' && (
+            <div className="flex gap-1.5 items-center">
+              <label className="flex items-center gap-1.5 flex-1">
+                <span className="text-[10px] text-text-tertiary shrink-0">두께</span>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={5}
+                  step={0.5}
+                  value={furniture.borderWidth ?? 1}
+                  onChange={(e) => updateFurniture(furniture.id, { borderWidth: Number(e.target.value) })}
+                  className="flex-1 h-1 accent-accent-primary cursor-pointer"
+                />
+                <span className="text-[10px] text-text-tertiary w-6 text-right">{furniture.borderWidth ?? 1}</span>
+              </label>
+              <input
+                type="color"
+                value={furniture.borderColor ?? furniture.color}
+                onChange={(e) => updateFurniture(furniture.id, { borderColor: e.target.value })}
+                className="w-6 h-6 rounded border border-border-primary cursor-pointer p-0"
+                title="외곽선 색상"
+              />
+            </div>
+          )}
         </div>
 
         {/* Rotation */}
@@ -232,13 +278,25 @@ export default function RightSidebar() {
                           ))}
                         </select>
                       </div>
-                      <textarea
-                        value={item.memo}
-                        onChange={(e) => updateItem(item.id, { memo: e.target.value })}
-                        placeholder="메모"
-                        rows={1}
-                        className="px-2 py-1 text-sm bg-bg-primary border border-border-primary rounded outline-none resize-none focus:border-accent-primary"
-                      />
+                      <div className="flex gap-1.5 items-center">
+                        <span className="text-[10px] text-text-tertiary shrink-0">층</span>
+                        <select
+                          value={item.floor ?? 1}
+                          onChange={(e) => updateItem(item.id, { floor: Number(e.target.value) })}
+                          className="w-16 px-2 py-1 text-sm bg-bg-primary border border-border-primary rounded outline-none focus:border-accent-primary"
+                        >
+                          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>{n}층</option>
+                          ))}
+                        </select>
+                        <textarea
+                          value={item.memo}
+                          onChange={(e) => updateItem(item.id, { memo: e.target.value })}
+                          placeholder="메모"
+                          rows={1}
+                          className="flex-1 px-2 py-1 text-sm bg-bg-primary border border-border-primary rounded outline-none resize-none focus:border-accent-primary"
+                        />
+                      </div>
                       <button
                         onClick={() => setEditingItemId(null)}
                         className="text-xs text-accent-primary font-medium self-end"
@@ -258,6 +316,9 @@ export default function RightSidebar() {
                             </span>
                             <span className="text-[10px] text-text-tertiary">
                               x{item.quantity}
+                            </span>
+                            <span className="text-[10px] text-accent-primary/70 bg-accent-primary/8 px-1.5 py-px rounded">
+                              {item.floor ?? 1}층
                             </span>
                           </div>
                         </div>
@@ -323,6 +384,15 @@ export default function RightSidebar() {
               >
                 {ITEM_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                value={newItemFloor}
+                onChange={(e) => setNewItemFloor(Number(e.target.value))}
+                className="w-16 px-1 py-1.5 text-sm bg-bg-secondary border border-border-primary rounded-md outline-none focus:border-accent-primary transition-default"
+              >
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>{n}층</option>
                 ))}
               </select>
               <button

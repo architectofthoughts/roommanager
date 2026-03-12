@@ -4,10 +4,24 @@ import type { Furniture, StorageItem, Room, FurnitureShape, FurnitureCategory } 
 
 const STORAGE_KEY = 'roommanager-data';
 
+function migrateRoom(room: Room): Room {
+  room.furniture = room.furniture.map(f => ({
+    ...f,
+    borderStyle: f.borderStyle ?? 'solid',
+    borderWidth: f.borderWidth ?? 1,
+    borderColor: f.borderColor ?? f.color,
+  }));
+  room.items = room.items.map(i => ({
+    ...i,
+    floor: i.floor ?? 1,
+  }));
+  return room;
+}
+
 function loadRoom(): Room {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Room;
+    if (raw) return migrateRoom(JSON.parse(raw) as Room);
   } catch { /* ignore */ }
   return {
     id: uuidv4(),
@@ -36,7 +50,7 @@ interface RoomStore {
   selectFurniture: (id: string | null) => void;
 
   // Item actions
-  addItem: (furnitureId: string, name: string, quantity: number, category: string, memo: string) => void;
+  addItem: (furnitureId: string, name: string, quantity: number, category: string, memo: string, floor?: number) => void;
   updateItem: (id: string, updates: Partial<StorageItem>) => void;
   deleteItem: (id: string) => void;
   bulkAddItems: (items: Omit<StorageItem, 'id' | 'updatedAt'>[]) => void;
@@ -55,6 +69,11 @@ export const useStore = create<RoomStore>((set, get) => ({
   searchQuery: '',
 
   addFurniture: (shape, category, name) => {
+    const defaultColor = category === 'storage' ? '#8B5E3C' :
+             category === 'bed' ? '#6B8EC4' :
+             category === 'table' ? '#C4956B' :
+             category === 'seating' ? '#7BC46B' :
+             category === 'appliance' ? '#9B9B9B' : '#B0A090';
     const furniture: Furniture = {
       id: uuidv4(),
       name,
@@ -65,12 +84,11 @@ export const useStore = create<RoomStore>((set, get) => ({
       width: shape === 'circle' ? 3 : 4,
       height: shape === 'circle' ? 3 : 3,
       rotation: 0,
-      color: category === 'storage' ? '#8B5E3C' :
-             category === 'bed' ? '#6B8EC4' :
-             category === 'table' ? '#C4956B' :
-             category === 'seating' ? '#7BC46B' :
-             category === 'appliance' ? '#9B9B9B' : '#B0A090',
+      color: defaultColor,
       memo: '',
+      borderStyle: 'solid',
+      borderWidth: 1,
+      borderColor: defaultColor,
     };
     set(state => {
       const room = { ...state.room, furniture: [...state.room.furniture, furniture] };
@@ -104,7 +122,7 @@ export const useStore = create<RoomStore>((set, get) => ({
 
   selectFurniture: (id) => set({ selectedFurnitureId: id }),
 
-  addItem: (furnitureId, name, quantity, category, memo) => {
+  addItem: (furnitureId, name, quantity, category, memo, floor = 1) => {
     const item: StorageItem = {
       id: uuidv4(),
       furnitureId,
@@ -112,6 +130,7 @@ export const useStore = create<RoomStore>((set, get) => ({
       quantity,
       category,
       memo,
+      floor,
       updatedAt: new Date().toISOString(),
     };
     set(state => {
@@ -145,6 +164,7 @@ export const useStore = create<RoomStore>((set, get) => ({
       const items = newItems.map(item => ({
         ...item,
         id: uuidv4(),
+        floor: item.floor ?? 1,
         updatedAt: new Date().toISOString(),
       }));
       const room = { ...state.room, items: [...state.room.items, ...items] };

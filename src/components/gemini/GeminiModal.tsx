@@ -88,6 +88,7 @@ export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
         quantity: s.quantity,
         category: s.category,
         memo: `AI 추천 (신뢰도: ${Math.round(s.confidence * 100)}%)`,
+        floor: 1,
       }))
     );
 

@@ -1,5 +1,6 @@
 export type FurnitureShape = 'rect' | 'circle';
 export type FurnitureCategory = 'storage' | 'seating' | 'table' | 'bed' | 'appliance' | 'other';
+export type BorderStyle = 'solid' | 'dashed' | 'none';
 
 export interface Furniture {
   id: string;
@@ -13,6 +14,9 @@ export interface Furniture {
   rotation: number;
   color: string;
   memo: string;
+  borderStyle: BorderStyle;
+  borderWidth: number;
+  borderColor: string;
 }
 
 export interface StorageItem {
@@ -22,6 +26,7 @@ export interface StorageItem {
   quantity: number;
   category: string;
   memo: string;
+  floor: number;
   updatedAt: string;
 }
 

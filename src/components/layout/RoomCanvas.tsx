@@ -53,15 +53,16 @@ export default function RoomCanvas() {
     tr.getLayer()?.batchDraw();
   }, [selectedFurnitureId, room.furniture]);
 
-  const snap = useCallback((val: number) => Math.round(val / cellSize) * cellSize, [cellSize]);
+  const halfCell = cellSize / 2;
+  const snap = useCallback((val: number) => Math.round(val / halfCell) * halfCell, [halfCell]);
 
   const handleDragEnd = useCallback((id: string, e: Konva.KonvaEventObject<DragEvent>) => {
     const node = e.target;
-    const newX = snap(node.x()) / cellSize;
-    const newY = snap(node.y()) / cellSize;
-    node.x(newX * cellSize);
-    node.y(newY * cellSize);
-    updateFurniture(id, { x: newX, y: newY });
+    const snappedX = snap(node.x());
+    const snappedY = snap(node.y());
+    node.x(snappedX);
+    node.y(snappedY);
+    updateFurniture(id, { x: snappedX / cellSize, y: snappedY / cellSize });
   }, [snap, cellSize, updateFurniture]);
 
   const handleTransformEnd = useCallback((id: string, e: Konva.KonvaEventObject<Event>) => {
@@ -176,6 +177,14 @@ export default function RoomCanvas() {
             const ph = f.height * cellSize;
             const isSelected = selectedFurnitureId === f.id;
 
+            const bs = f.borderStyle ?? 'solid';
+            const bw = f.borderWidth ?? 1;
+            const bc = f.borderColor ?? f.color;
+            const showBorder = bs !== 'none';
+            const strokeColor = isSelected ? '#C4956A' : (showBorder ? bc : undefined);
+            const strokeWidth = isSelected ? 2 : (showBorder ? bw : 0);
+            const dashArray = bs === 'dashed' && !isSelected ? [6, 4] : undefined;
+
             return (
               <Group
                 key={f.id}
@@ -204,16 +213,18 @@ export default function RoomCanvas() {
                     radiusX={pw / 2}
                     radiusY={ph / 2}
                     fill={f.color + '55'}
-                    stroke={isSelected ? '#C4956A' : f.color}
-                    strokeWidth={isSelected ? 2 : 1.2}
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    dash={dashArray}
                   />
                 ) : (
                   <Rect
                     width={pw}
                     height={ph}
                     fill={f.color + '55'}
-                    stroke={isSelected ? '#C4956A' : f.color}
-                    strokeWidth={isSelected ? 2 : 1.2}
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    dash={dashArray}
                     cornerRadius={3}
                   />
                 )}

@@ -67,6 +67,39 @@ export default function TopBar({ onOpenGemini, onOpenStats }: TopBarProps) {
         </button>
       )}
 
+      {/* Room Size */}
+      <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="text-text-tertiary">
+          <rect x="1" y="1" width="14" height="14" rx="2" />
+          <path d="M5 1v14M1 5h14" />
+        </svg>
+        <input
+          type="number"
+          min={4}
+          max={50}
+          value={room.gridWidth}
+          onChange={(e) => {
+            const v = Math.max(4, Math.min(50, Number(e.target.value)));
+            updateRoom({ gridWidth: v });
+          }}
+          className="w-11 px-1.5 py-0.5 text-xs text-center bg-bg-secondary border border-border-primary rounded outline-none focus:border-accent-primary transition-default"
+          title="가로 그리드"
+        />
+        <span className="text-text-tertiary">x</span>
+        <input
+          type="number"
+          min={4}
+          max={50}
+          value={room.gridHeight}
+          onChange={(e) => {
+            const v = Math.max(4, Math.min(50, Number(e.target.value)));
+            updateRoom({ gridHeight: v });
+          }}
+          className="w-11 px-1.5 py-0.5 text-xs text-center bg-bg-secondary border border-border-primary rounded outline-none focus:border-accent-primary transition-default"
+          title="세로 그리드"
+        />
+      </div>
+
       {/* Spacer */}
       <div className="flex-1" />
 
