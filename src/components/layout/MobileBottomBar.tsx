@@ -36,7 +36,7 @@ export default function MobileBottomBar({
 }: MobileBottomBarProps) {
   return (
     <nav
-      className="shrink-0 flex items-stretch border-t border-border-primary bg-bg-primary px-1 safe-bottom"
+      className="shrink-0 flex items-stretch border-t border-border-primary bg-bg-primary px-1 safe-bottom shadow-[0_-2px_8px_rgba(0,0,0,0.06)]"
     >
       <NavButton
         active={furniturePanelOpen}

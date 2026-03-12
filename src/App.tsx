@@ -106,7 +106,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] w-screen overflow-hidden bg-bg-primary">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-bg-primary">
       <TopBar
         onOpenGemini={() => setGeminiOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
