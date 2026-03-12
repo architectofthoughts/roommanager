@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #FAFAF8;
+  --color-bg-secondary: #F5F3EF;
+  --color-bg-tertiary: #EDE8E0;
+  --color-accent-primary: #C4956A;
+  --color-accent-secondary: #8B7355;
+  --color-accent-warm: #D4A574;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6B6560;
+  --color-text-tertiary: #9B9590;
+  --color-border-primary: #E0DBD4;
+  --color-border-secondary: #D0C8BE;
+
+  --color-cat-storage: #8B5E3C;
+  --color-cat-bed: #6B8EC4;
+  --color-cat-table: #C4956B;
+  --color-cat-seating: #7BC46B;
+  --color-cat-appliance: #9B9B9B;
+  --color-cat-other: #B0A090;
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-width: 1024px;
+    overflow: hidden;
+  }
+
+  #root {
+    width: 100%;
+    height: 100vh;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+}
+
+@layer components {
+  /* Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-secondary);
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-accent-secondary);
+  }
+
+  /* Category badge colors */
+  .badge-storage { background-color: #8B5E3C; color: white; }
+  .badge-bed { background-color: #6B8EC4; color: white; }
+  .badge-table { background-color: #C4956B; color: white; }
+  .badge-seating { background-color: #7BC46B; color: white; }
+  .badge-appliance { background-color: #9B9B9B; color: white; }
+  .badge-other { background-color: #B0A090; color: white; }
+}
+
+@layer utilities {
+  .transition-default {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-timing-function: ease-out;
+    transition-duration: 150ms;
+  }
+}
