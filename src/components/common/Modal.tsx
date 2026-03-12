@@ -25,19 +25,19 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-[2px]"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
       <div
-        className={`${width} w-full mx-4 bg-bg-primary rounded-xl shadow-xl border border-border-primary animate-in`}
+        className={`${width} w-full mx-0 md:mx-4 bg-bg-primary md:rounded-xl rounded-t-2xl shadow-xl border border-border-primary`}
         style={{ animation: 'modalIn 200ms ease-out' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border-primary">
+        <div className="flex items-center justify-between px-4 md:px-5 py-3 md:py-4 border-b border-border-primary">
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-default"
+            className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-default"
             aria-label="닫기"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -47,17 +47,10 @@ export default function Modal({ isOpen, onClose, title, children, width = 'max-w
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        <div className="px-4 md:px-5 py-4 max-h-[80vh] md:max-h-[70vh] overflow-y-auto custom-scrollbar">
           {children}
         </div>
       </div>
-
-      <style>{`
-        @keyframes modalIn {
-          from { opacity: 0; transform: translateY(8px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
     </div>
   );
 }

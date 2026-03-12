@@ -29,7 +29,11 @@ const BADGE_CLASS: Record<FurnitureCategory, string> = {
   other: 'badge-other',
 };
 
-export default function LeftSidebar() {
+interface LeftSidebarProps {
+  mobile?: boolean;
+}
+
+export default function LeftSidebar({ mobile }: LeftSidebarProps) {
   const room = useRoom();
   const { selectedFurnitureId, addFurniture, selectFurniture } = useStore();
 
@@ -45,9 +49,13 @@ export default function LeftSidebar() {
   };
 
   return (
-    <aside className="w-[280px] shrink-0 border-r border-border-primary bg-bg-primary flex flex-col h-full">
+    <aside className={`bg-bg-primary flex flex-col h-full ${
+      mobile
+        ? 'w-full'
+        : 'w-[280px] shrink-0 border-r border-border-primary'
+    }`}>
       {/* Add Furniture Section */}
-      <div className="p-4 border-b border-border-primary">
+      <div className={`border-b border-border-primary ${mobile ? 'p-4' : 'p-4'}`}>
         <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">
           가구 추가
         </h3>
@@ -56,7 +64,9 @@ export default function LeftSidebar() {
         <div className="flex gap-1.5 mb-3">
           <button
             onClick={() => setShape('rect')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md border transition-default ${
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md border transition-default ${
+              mobile ? 'py-2.5' : 'py-1.5'
+            } ${
               shape === 'rect'
                 ? 'border-accent-primary bg-accent-primary/10 text-accent-secondary'
                 : 'border-border-primary bg-bg-secondary text-text-secondary hover:border-border-secondary'
@@ -69,7 +79,9 @@ export default function LeftSidebar() {
           </button>
           <button
             onClick={() => setShape('circle')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md border transition-default ${
+            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-medium rounded-md border transition-default ${
+              mobile ? 'py-2.5' : 'py-1.5'
+            } ${
               shape === 'circle'
                 ? 'border-accent-primary bg-accent-primary/10 text-accent-secondary'
                 : 'border-border-primary bg-bg-secondary text-text-secondary hover:border-border-secondary'
@@ -86,7 +98,9 @@ export default function LeftSidebar() {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as FurnitureCategory)}
-          className="w-full mb-2 px-2.5 py-1.5 text-sm bg-bg-secondary border border-border-primary rounded-md outline-none focus:border-accent-primary transition-default text-text-primary"
+          className={`w-full mb-2 px-2.5 text-sm bg-bg-secondary border border-border-primary rounded-md outline-none focus:border-accent-primary transition-default text-text-primary ${
+            mobile ? 'py-2.5' : 'py-1.5'
+          }`}
         >
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
@@ -101,12 +115,16 @@ export default function LeftSidebar() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-            className="flex-1 px-2.5 py-1.5 text-sm bg-bg-secondary border border-border-primary rounded-md outline-none placeholder:text-text-tertiary focus:border-accent-primary transition-default"
+            className={`flex-1 px-2.5 text-sm bg-bg-secondary border border-border-primary rounded-md outline-none placeholder:text-text-tertiary focus:border-accent-primary transition-default ${
+              mobile ? 'py-2.5' : 'py-1.5'
+            }`}
           />
           <button
             onClick={handleAdd}
             disabled={!name.trim()}
-            className="px-3 py-1.5 text-xs font-medium bg-accent-primary text-white rounded-md hover:bg-accent-secondary transition-default disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`px-4 text-xs font-medium bg-accent-primary text-white rounded-md hover:bg-accent-secondary transition-default disabled:opacity-40 disabled:cursor-not-allowed ${
+              mobile ? 'py-2.5' : 'py-1.5'
+            }`}
           >
             추가
           </button>
@@ -133,7 +151,9 @@ export default function LeftSidebar() {
                 <button
                   key={f.id}
                   onClick={() => selectFurniture(f.id)}
-                  className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg transition-default ${
+                  className={`w-full text-left flex items-center gap-2.5 px-3 rounded-lg transition-default ${
+                    mobile ? 'py-3' : 'py-2'
+                  } ${
                     selectedFurnitureId === f.id
                       ? 'bg-accent-primary/10 border border-accent-primary/30'
                       : 'hover:bg-bg-secondary border border-transparent'
