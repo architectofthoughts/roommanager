@@ -5,7 +5,8 @@ import RoomCanvas from './components/layout/RoomCanvas';
 import RightSidebar from './components/layout/RightSidebar';
 import MobileBottomBar from './components/layout/MobileBottomBar';
 import { useIsMobile } from './hooks/useMediaQuery';
-import { useStore } from './store/useStore';
+import { useStore, useRoom } from './store/useStore';
+import type { FurnitureCategory } from './types';
 
 const GeminiModal = lazy(() => import('./components/gemini/GeminiModal'));
 const StatsModal = lazy(() => import('./components/stats/StatsModal'));
@@ -17,6 +18,52 @@ function ModalFallback() {
       <div className="bg-bg-primary rounded-xl px-8 py-6 text-sm text-text-secondary">
         불러오는 중...
       </div>
+    </div>
+  );
+}
+
+const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
+  storage: '수납장', bed: '침대', table: '테이블',
+  seating: '의자', appliance: '가전', other: '기타',
+};
+
+function MobileQuickBar({ onOpenDetail, onDeselect }: { onOpenDetail: () => void; onDeselect: () => void }) {
+  const room = useRoom();
+  const selectedId = useStore((s) => s.selectedFurnitureId);
+  const furniture = room.furniture.find((f) => f.id === selectedId);
+  const itemCount = room.items.filter((i) => i.furnitureId === selectedId).length;
+
+  if (!furniture) return null;
+
+  return (
+    <div
+      className="fixed left-3 right-3 bottom-[60px] z-30 bg-bg-primary border border-border-primary rounded-xl shadow-xl px-3 py-2.5 flex items-center gap-2.5"
+      style={{ animation: 'slideUp 200ms ease-out' }}
+    >
+      <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: furniture.color }} />
+      <div className="flex-1 min-w-0 flex items-center gap-2">
+        <span className="text-sm font-semibold text-text-primary truncate">{furniture.name}</span>
+        <span className="text-[10px] text-text-tertiary shrink-0">
+          {CATEGORY_LABELS[furniture.category] ?? '기타'}
+        </span>
+        {itemCount > 0 && (
+          <span className="text-[10px] text-accent-primary font-medium shrink-0">{itemCount}개</span>
+        )}
+      </div>
+      <button
+        onClick={onOpenDetail}
+        className="px-3 py-1.5 text-xs font-medium bg-accent-primary text-white rounded-lg hover:bg-accent-secondary transition-default active:scale-95 shrink-0"
+      >
+        상세
+      </button>
+      <button
+        onClick={onDeselect}
+        className="w-8 h-8 flex items-center justify-center rounded-lg text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-default shrink-0"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M1 1l12 12M13 1L1 13" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -34,11 +81,11 @@ export default function App() {
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
 
-  // Auto-open right bottom sheet when furniture is selected on mobile
+  // Step 1: selecting furniture on mobile just closes left drawer (no auto-open of sheet)
+  // Step 2: user taps "상세" on quick bar to open sheet
   useEffect(() => {
     if (!isMobile) return;
     if (selectedFurnitureId) {
-      setMobileRightOpen(true);
       setMobileLeftOpen(false);
     } else {
       setMobileRightOpen(false);
@@ -55,7 +102,7 @@ export default function App() {
 
   const closeMobileRight = () => {
     setMobileRightOpen(false);
-    selectFurniture(null);
+    // Don't deselect — quick bar stays visible, user can reopen or deselect explicitly
   };
 
   return (
@@ -79,11 +126,19 @@ export default function App() {
           furniturePanelOpen={mobileLeftOpen}
           onToggleFurniturePanel={() => {
             setMobileLeftOpen((v) => !v);
-            if (mobileRightOpen) closeMobileRight();
+            if (mobileRightOpen) setMobileRightOpen(false);
           }}
           onOpenStats={() => { setStatsOpen(true); setMobileLeftOpen(false); }}
           onOpenRoomAnalysis={() => { setRoomAnalysisOpen(true); setMobileLeftOpen(false); }}
           onOpenGemini={() => { setGeminiOpen(true); setMobileLeftOpen(false); }}
+        />
+      )}
+
+      {/* Mobile quick action bar — Step 1: light selection indicator */}
+      {isMobile && selectedFurnitureId && !mobileRightOpen && !mobileLeftOpen && (
+        <MobileQuickBar
+          onOpenDetail={() => setMobileRightOpen(true)}
+          onDeselect={() => selectFurniture(null)}
         />
       )}
 
@@ -100,12 +155,18 @@ export default function App() {
             style={{ animation: 'slideInLeft 200ms ease-out' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <LeftSidebar mobile />
+            <LeftSidebar
+              mobile
+              onSelectMobile={() => {
+                setMobileLeftOpen(false);
+                setMobileRightOpen(true);
+              }}
+            />
           </div>
         </div>
       )}
 
-      {/* Mobile right bottom sheet overlay */}
+      {/* Mobile right bottom sheet overlay — Step 2: full detail */}
       {isMobile && mobileRightOpen && selectedFurnitureId && (
         <div className="fixed inset-0 z-40 top-12">
           <div

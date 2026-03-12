@@ -31,9 +31,10 @@ const BADGE_CLASS: Record<FurnitureCategory, string> = {
 
 interface LeftSidebarProps {
   mobile?: boolean;
+  onSelectMobile?: () => void;
 }
 
-export default function LeftSidebar({ mobile }: LeftSidebarProps) {
+export default function LeftSidebar({ mobile, onSelectMobile }: LeftSidebarProps) {
   const room = useRoom();
   const { selectedFurnitureId, addFurniture, selectFurniture } = useStore();
 
@@ -150,7 +151,7 @@ export default function LeftSidebar({ mobile }: LeftSidebarProps) {
               {room.furniture.map((f) => (
                 <button
                   key={f.id}
-                  onClick={() => selectFurniture(f.id)}
+                  onClick={() => { selectFurniture(f.id); onSelectMobile?.(); }}
                   className={`w-full text-left flex items-center gap-2.5 px-3 rounded-lg transition-default ${
                     mobile ? 'py-3' : 'py-2'
                   } ${
