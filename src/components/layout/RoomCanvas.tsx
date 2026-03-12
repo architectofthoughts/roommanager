@@ -1,10 +1,11 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { Stage, Layer, Rect, Circle, Text, Group, Transformer, Line } from 'react-konva';
 import type Konva from 'konva';
-import { useStore } from '../../store/useStore';
+import { useStore, useRoom } from '../../store/useStore';
 
 export default function RoomCanvas() {
-  const { room, selectedFurnitureId, selectFurniture, updateFurniture } = useStore();
+  const room = useRoom();
+  const { selectedFurnitureId, selectFurniture, updateFurniture } = useStore();
   const { gridWidth, gridHeight, cellSize } = room;
 
   const stageWidth = gridWidth * cellSize;
@@ -184,6 +185,7 @@ export default function RoomCanvas() {
             const strokeColor = isSelected ? '#C4956A' : (showBorder ? bc : undefined);
             const strokeWidth = isSelected ? 2 : (showBorder ? bw : 0);
             const dashArray = bs === 'dashed' && !isSelected ? [6, 4] : undefined;
+            const alpha = Math.round((f.opacity ?? 0.33) * 255).toString(16).padStart(2, '0');
 
             return (
               <Group
@@ -212,7 +214,7 @@ export default function RoomCanvas() {
                     y={ph / 2}
                     radiusX={pw / 2}
                     radiusY={ph / 2}
-                    fill={f.color + '55'}
+                    fill={f.color + alpha}
                     stroke={strokeColor}
                     strokeWidth={strokeWidth}
                     dash={dashArray}
@@ -221,7 +223,7 @@ export default function RoomCanvas() {
                   <Rect
                     width={pw}
                     height={ph}
-                    fill={f.color + '55'}
+                    fill={f.color + alpha}
                     stroke={strokeColor}
                     strokeWidth={strokeWidth}
                     dash={dashArray}

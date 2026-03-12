@@ -17,6 +17,7 @@ export interface Furniture {
   borderStyle: BorderStyle;
   borderWidth: number;
   borderColor: string;
+  opacity: number;
 }
 
 export interface StorageItem {
@@ -46,4 +47,20 @@ export interface Room {
   cellSize: number;
   furniture: Furniture[];
   items: StorageItem[];
+}
+
+export interface FurnitureSuggestion {
+  name: string;
+  category: FurnitureCategory;
+  shape: FurnitureShape;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number;
+}
+
+export interface RoomManagerData {
+  rooms: Room[];
+  activeRoomId: string;
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import Modal from '../common/Modal';
-import { useStore } from '../../store/useStore';
+import { useStore, useRoom } from '../../store/useStore';
 import { analyzeImageWithGemini, isGeminiAvailable } from '../../utils/gemini';
 import type { GeminiSuggestion } from '../../types';
 
@@ -14,7 +14,8 @@ interface EditableSuggestion extends GeminiSuggestion {
 }
 
 export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
-  const { room, selectedFurnitureId, bulkAddItems } = useStore();
+  const room = useRoom();
+  const { selectedFurnitureId, bulkAddItems } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);

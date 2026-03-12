@@ -1,16 +1,28 @@
 import { useState, useRef, useEffect } from 'react';
-import { useStore } from '../../store/useStore';
+import { useStore, useRoom } from '../../store/useStore';
 
 interface TopBarProps {
   onOpenGemini: () => void;
   onOpenStats: () => void;
+  onOpenRoomAnalysis: () => void;
 }
 
-export default function TopBar({ onOpenGemini, onOpenStats }: TopBarProps) {
-  const { room, updateRoom, searchQuery, setSearchQuery } = useStore();
+export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }: TopBarProps) {
+  const room = useRoom();
+  const { rooms, activeRoomId, updateRoom, switchRoom, addRoom, deleteRoom, duplicateRoom, searchQuery, setSearchQuery } = useStore();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(room.name);
+  const [roomMenuOpen, setRoomMenuOpen] = useState(false);
+  const [newRoomName, setNewRoomName] = useState('');
+  const [showNewRoomInput, setShowNewRoomInput] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const newRoomInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sync nameValue when active room changes
+  useEffect(() => {
+    setNameValue(room.name);
+  }, [room.name]);
 
   useEffect(() => {
     if (editingName && nameInputRef.current) {
@@ -19,11 +31,40 @@ export default function TopBar({ onOpenGemini, onOpenStats }: TopBarProps) {
     }
   }, [editingName]);
 
+  useEffect(() => {
+    if (showNewRoomInput && newRoomInputRef.current) {
+      newRoomInputRef.current.focus();
+    }
+  }, [showNewRoomInput]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!roomMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setRoomMenuOpen(false);
+        setShowNewRoomInput(false);
+        setNewRoomName('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [roomMenuOpen]);
+
   const commitName = () => {
     const trimmed = nameValue.trim();
     if (trimmed) updateRoom({ name: trimmed });
     else setNameValue(room.name);
     setEditingName(false);
+  };
+
+  const handleAddRoom = () => {
+    const trimmed = newRoomName.trim();
+    if (!trimmed) return;
+    addRoom(trimmed);
+    setNewRoomName('');
+    setShowNewRoomInput(false);
+    setRoomMenuOpen(false);
   };
 
   return (
@@ -44,7 +85,120 @@ export default function TopBar({ onOpenGemini, onOpenStats }: TopBarProps) {
       {/* Separator */}
       <div className="w-px h-5 bg-border-primary" />
 
-      {/* Room Name */}
+      {/* Room Selector */}
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setRoomMenuOpen(!roomMenuOpen)}
+          className="flex items-center gap-1.5 px-2.5 py-1 text-sm font-medium rounded-lg border border-border-primary bg-bg-secondary text-text-primary hover:bg-bg-tertiary transition-default"
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="text-text-tertiary">
+            <path d="M2 3h12M2 8h12M2 13h12" />
+          </svg>
+          {room.name}
+          <span className="text-[10px] text-text-tertiary ml-0.5">
+            ({rooms.length})
+          </span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" className="text-text-tertiary">
+            <path d="M2.5 4L5 6.5L7.5 4" />
+          </svg>
+        </button>
+
+        {roomMenuOpen && (
+          <div className="absolute top-full left-0 mt-1 w-64 bg-bg-primary border border-border-primary rounded-xl shadow-xl z-50 overflow-hidden">
+            {/* Room list */}
+            <div className="max-h-60 overflow-y-auto custom-scrollbar py-1">
+              {rooms.map((r) => (
+                <div
+                  key={r.id}
+                  className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-default group ${
+                    r.id === activeRoomId
+                      ? 'bg-accent-primary/10'
+                      : 'hover:bg-bg-secondary'
+                  }`}
+                  onClick={() => { switchRoom(r.id); setRoomMenuOpen(false); }}
+                >
+                  {/* Active indicator */}
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    r.id === activeRoomId ? 'bg-accent-primary' : 'bg-transparent'
+                  }`} />
+
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm truncate ${
+                      r.id === activeRoomId ? 'font-semibold text-accent-secondary' : 'text-text-primary'
+                    }`}>
+                      {r.name}
+                    </div>
+                    <div className="text-[10px] text-text-tertiary">
+                      {r.furniture.length}개 가구 / {r.items.length}개 물품
+                    </div>
+                  </div>
+
+                  {/* Room actions */}
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-default shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => { duplicateRoom(r.id); setRoomMenuOpen(false); }}
+                      className="w-6 h-6 flex items-center justify-center rounded text-text-tertiary hover:text-text-primary hover:bg-bg-tertiary transition-default"
+                      title="복제"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+                        <rect x="3" y="3" width="8" height="8" rx="1" />
+                        <path d="M3 9H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1" />
+                      </svg>
+                    </button>
+                    {rooms.length > 1 && (
+                      <button
+                        onClick={() => { deleteRoom(r.id); if (rooms.length <= 2) setRoomMenuOpen(false); }}
+                        className="w-6 h-6 flex items-center justify-center rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-default"
+                        title="삭제"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+                          <path d="M1.5 3h9M4.5 3V1.5h3V3M3 3l.5 7.5h5L9 3" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add room */}
+            <div className="border-t border-border-primary p-2">
+              {showNewRoomInput ? (
+                <div className="flex gap-1.5">
+                  <input
+                    ref={newRoomInputRef}
+                    type="text"
+                    placeholder="새 방 이름"
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddRoom(); if (e.key === 'Escape') { setShowNewRoomInput(false); setNewRoomName(''); } }}
+                    className="flex-1 px-2.5 py-1.5 text-sm bg-bg-secondary border border-border-primary rounded-md outline-none placeholder:text-text-tertiary focus:border-accent-primary transition-default"
+                  />
+                  <button
+                    onClick={handleAddRoom}
+                    disabled={!newRoomName.trim()}
+                    className="px-3 py-1.5 text-xs font-medium bg-accent-primary text-white rounded-md hover:bg-accent-secondary transition-default disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    추가
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowNewRoomInput(true)}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-text-secondary hover:text-accent-secondary hover:bg-accent-primary/5 rounded-md transition-default"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+                    <path d="M6 2v8M2 6h8" />
+                  </svg>
+                  새 방 추가
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Room Name Edit */}
       {editingName ? (
         <input
           ref={nameInputRef}
@@ -57,13 +211,13 @@ export default function TopBar({ onOpenGemini, onOpenStats }: TopBarProps) {
       ) : (
         <button
           onClick={() => { setNameValue(room.name); setEditingName(true); }}
-          className="text-sm font-medium text-text-secondary hover:text-text-primary transition-default flex items-center gap-1.5"
+          className="text-[11px] text-text-tertiary hover:text-text-primary transition-default flex items-center gap-1"
           title="클릭하여 방 이름 수정"
         >
-          {room.name}
-          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
             <path d="M8.5 1.5l2 2M1 11l.7-2.8L9.2 .7l2 2-7.5 7.5L1 11z" />
           </svg>
+          이름 수정
         </button>
       )}
 
@@ -141,15 +295,27 @@ export default function TopBar({ onOpenGemini, onOpenStats }: TopBarProps) {
         통계
       </button>
 
-      {/* Gemini Button */}
+      {/* Room Analysis Button */}
+      <button
+        onClick={onOpenRoomAnalysis}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-accent-primary/10 text-accent-secondary hover:bg-accent-primary/20 transition-default"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M5 7h6M5 10h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+        방 사진 분석
+      </button>
+
+      {/* Item Analysis Button */}
       <button
         onClick={onOpenGemini}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-accent-primary/10 text-accent-secondary hover:bg-accent-primary/20 transition-default"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-bg-secondary text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-default border border-border-primary"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M8 1v14M1 8h14M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
-        사진 분석
+        물품 분석
       </button>
     </header>
   );

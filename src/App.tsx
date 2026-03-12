@@ -6,6 +6,7 @@ import RightSidebar from './components/layout/RightSidebar';
 
 const GeminiModal = lazy(() => import('./components/gemini/GeminiModal'));
 const StatsModal = lazy(() => import('./components/stats/StatsModal'));
+const RoomAnalysisModal = lazy(() => import('./components/gemini/RoomAnalysisModal'));
 
 function ModalFallback() {
   return (
@@ -20,12 +21,14 @@ function ModalFallback() {
 export default function App() {
   const [geminiOpen, setGeminiOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [roomAnalysisOpen, setRoomAnalysisOpen] = useState(false);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-primary">
       <TopBar
         onOpenGemini={() => setGeminiOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
+        onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
       />
       <div className="flex flex-1 overflow-hidden">
         <LeftSidebar />
@@ -35,6 +38,7 @@ export default function App() {
       <Suspense fallback={<ModalFallback />}>
         {geminiOpen && <GeminiModal isOpen={geminiOpen} onClose={() => setGeminiOpen(false)} />}
         {statsOpen && <StatsModal isOpen={statsOpen} onClose={() => setStatsOpen(false)} />}
+        {roomAnalysisOpen && <RoomAnalysisModal isOpen={roomAnalysisOpen} onClose={() => setRoomAnalysisOpen(false)} />}
       </Suspense>
     </div>
   );

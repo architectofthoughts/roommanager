@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '../../store/useStore';
+import { useStore, useRoom } from '../../store/useStore';
 import type { FurnitureShape, FurnitureCategory } from '../../types';
 
 const CATEGORIES: { value: FurnitureCategory; label: string }[] = [
@@ -30,7 +30,8 @@ const BADGE_CLASS: Record<FurnitureCategory, string> = {
 };
 
 export default function LeftSidebar() {
-  const { room, selectedFurnitureId, addFurniture, selectFurniture } = useStore();
+  const room = useRoom();
+  const { selectedFurnitureId, addFurniture, selectFurniture } = useStore();
 
   const [shape, setShape] = useState<FurnitureShape>('rect');
   const [category, setCategory] = useState<FurnitureCategory>('storage');

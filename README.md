@@ -6,12 +6,16 @@
 ## 주요 기능
 
 - **시각적 방 레이아웃** — Konva.js 기반 드래그 & 리사이즈 캔버스로 가구 배치
+- **방 크기 조절** — 상단 바에서 가로/세로 그리드 크기를 직접 조절 (4~50 범위)
 - **가구 관리** — 사각형/원형 가구 추가, 카테고리별 색상, 회전, 메모
-- **물품 인벤토리** — 가구별 물품 등록/수정/삭제, 카테고리 분류
+- **가구 외곽선 편집** — 실선/점선/없음 스타일, 두께(0.5~5), 색상 커스터마이징
+- **정밀 이동** — 0.5셀 단위 스냅으로 가구를 정밀하게 배치
+- **물품 인벤토리** — 가구별 물품 등록/수정/삭제, 카테고리 분류, 층(1~10층) 관리
 - **AI 사진 분석** — Google Gemini API로 사진 속 물품을 자동 인식하여 등록
 - **물품 통계** — 카테고리별 분포, 가구별 보관 현황 대시보드
 - **검색** — 물품명/카테고리/메모 통합 검색
 - **자동 저장** — 모든 데이터는 브라우저 localStorage에 자동 저장
+- **데이터 마이그레이션** — 이전 버전 데이터를 자동으로 최신 스키마로 변환
 
 ## 기술 스택
 
@@ -50,6 +54,10 @@ npm run dev
 ```
 
 `http://localhost:5173`에서 앱이 실행됩니다.
+
+#### Windows에서 빠르게 실행하기
+
+프로젝트 루트의 `run.bat` 파일을 더블클릭하면 Node.js 환경 확인, 의존성 설치, 개발 서버 실행까지 자동으로 진행됩니다.
 
 ### 환경 변수
 
@@ -100,18 +108,57 @@ src/
 ├── App.tsx                           # 루트 컴포넌트 (레이아웃 + lazy loading)
 ├── index.css                         # 글로벌 스타일 + Tailwind 테마
 ├── types/index.ts                    # TypeScript 타입 정의
-├── store/useStore.ts                 # Zustand 상태 관리
+├── store/useStore.ts                 # Zustand 상태 관리 + localStorage 영속화
 ├── utils/gemini.ts                   # Gemini API 유틸리티
 └── components/
     ├── common/Modal.tsx              # 재사용 모달
     ├── gemini/GeminiModal.tsx        # AI 사진 분석 모달
     ├── stats/StatsModal.tsx          # 물품 통계 대시보드
     └── layout/
-        ├── TopBar.tsx                # 상단 헤더
+        ├── TopBar.tsx                # 상단 헤더 (방 이름, 크기 조절, 검색, 버튼)
         ├── LeftSidebar.tsx           # 가구 추가/목록
-        ├── RoomCanvas.tsx            # 인터랙티브 캔버스
-        └── RightSidebar.tsx          # 가구 상세/물품 관리
+        ├── RoomCanvas.tsx            # 인터랙티브 캔버스 (0.5셀 스냅)
+        └── RightSidebar.tsx          # 가구 상세/외곽선 편집/물품 관리
 ```
+
+## 데이터 모델
+
+### Furniture (가구)
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | string | UUID |
+| `name` | string | 가구 이름 |
+| `shape` | `'rect' \| 'circle'` | 모양 |
+| `category` | FurnitureCategory | 카테고리 (수납장/침대/테이블/의자/가전/기타) |
+| `x`, `y` | number | 그리드 좌표 |
+| `width`, `height` | number | 그리드 크기 |
+| `rotation` | number | 회전 각도 |
+| `color` | string | 채우기 색상 |
+| `memo` | string | 메모 |
+| `borderStyle` | `'solid' \| 'dashed' \| 'none'` | 외곽선 스타일 |
+| `borderWidth` | number | 외곽선 두께 (0.5~5) |
+| `borderColor` | string | 외곽선 색상 |
+
+### StorageItem (물품)
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | string | UUID |
+| `furnitureId` | string | 소속 가구 ID |
+| `name` | string | 물품명 |
+| `quantity` | number | 수량 |
+| `category` | string | 물품 카테고리 |
+| `memo` | string | 메모 |
+| `floor` | number | 층 (1~10) |
+| `updatedAt` | string | ISO 날짜 |
+
+## 알려진 사항
+
+- 데이터는 브라우저 localStorage에 저장되므로, 브라우저 데이터를 초기화하면 데이터가 삭제됩니다.
+- 이전 버전에서 저장된 데이터는 앱 로드 시 자동으로 마이그레이션됩니다 (`borderStyle`, `borderWidth`, `borderColor`, `floor` 필드).
+- Gemini API 키가 없으면 사진 분석 기능이 데모 모드로 동작하며, 샘플 데이터를 반환합니다.
+- 최소 화면 폭은 1024px입니다.
 
 ## 라이선스
 

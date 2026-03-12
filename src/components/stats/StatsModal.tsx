@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import Modal from '../common/Modal';
-import { useStore } from '../../store/useStore';
+import { useRoom } from '../../store/useStore';
 import type { FurnitureCategory } from '../../types';
 
 const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
@@ -20,7 +20,7 @@ interface StatsModalProps {
 }
 
 export default function StatsModal({ isOpen, onClose }: StatsModalProps) {
-  const { room } = useStore();
+  const room = useRoom();
 
   const stats = useMemo(() => {
     const totalFurniture = room.furniture.length;

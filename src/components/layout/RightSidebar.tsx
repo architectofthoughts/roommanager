@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useStore } from '../../store/useStore';
+import { useState, useMemo, useEffect } from 'react';
+import { useStore, useRoom } from '../../store/useStore';
 import type { FurnitureCategory, BorderStyle } from '../../types';
 
 const CATEGORIES: { value: FurnitureCategory; label: string }[] = [
@@ -28,8 +28,9 @@ function formatDate(iso: string) {
 }
 
 export default function RightSidebar() {
+  const room = useRoom();
   const {
-    room, selectedFurnitureId,
+    selectedFurnitureId,
     updateFurniture, deleteFurniture, selectFurniture,
     addItem, updateItem, deleteItem,
   } = useStore();
@@ -51,6 +52,16 @@ export default function RightSidebar() {
   const [newItemMemo, setNewItemMemo] = useState('');
   const [newItemFloor, setNewItemFloor] = useState(1);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [deleteStep, setDeleteStep] = useState<'idle' | 'pin'>('idle');
+  const [pinValue, setPinValue] = useState('');
+  const [pinError, setPinError] = useState(false);
+
+  // Reset delete flow when selection changes
+  useEffect(() => {
+    setDeleteStep('idle');
+    setPinValue('');
+    setPinError(false);
+  }, [selectedFurnitureId]);
 
   const handleAddItem = () => {
     if (!selectedFurnitureId || !newItemName.trim()) return;
@@ -63,11 +74,30 @@ export default function RightSidebar() {
 
   const handleDeleteFurniture = () => {
     if (!furniture) return;
-    if (items.length > 0) {
-      const ok = window.confirm(`"${furniture.name}"에 수납된 ${items.length}개 물품도 함께 삭제됩니다. 계속하시겠습니까?`);
-      if (!ok) return;
+    if (deleteStep === 'idle') {
+      setDeleteStep('pin');
+      setPinValue('');
+      setPinError(false);
+      return;
     }
-    deleteFurniture(furniture.id);
+  };
+
+  const handlePinSubmit = () => {
+    if (pinValue === '1557') {
+      deleteFurniture(furniture!.id);
+      setDeleteStep('idle');
+      setPinValue('');
+      setPinError(false);
+    } else {
+      setPinError(true);
+      setPinValue('');
+    }
+  };
+
+  const handlePinCancel = () => {
+    setDeleteStep('idle');
+    setPinValue('');
+    setPinError(false);
   };
 
   if (!furniture) {
@@ -147,6 +177,23 @@ export default function RightSidebar() {
           </div>
         </div>
 
+        {/* Opacity */}
+        <label className="block mb-2">
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-[11px] text-text-tertiary">투명도</span>
+            <span className="text-[11px] text-text-tertiary">{Math.round((furniture.opacity ?? 0.33) * 100)}%</span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round((furniture.opacity ?? 0.33) * 100)}
+            onChange={(e) => updateFurniture(furniture.id, { opacity: Number(e.target.value) / 100 })}
+            className="w-full h-1.5 accent-accent-primary cursor-pointer"
+          />
+        </label>
+
         {/* Border Style */}
         <div className="mb-2">
           <span className="text-[11px] text-text-tertiary mb-1 block">외곽선</span>
@@ -221,12 +268,59 @@ export default function RightSidebar() {
         </label>
 
         {/* Delete */}
-        <button
-          onClick={handleDeleteFurniture}
-          className="w-full py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-default"
-        >
-          가구 삭제
-        </button>
+        {deleteStep === 'idle' ? (
+          <button
+            onClick={handleDeleteFurniture}
+            className="w-full py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-default"
+          >
+            가구 삭제
+          </button>
+        ) : (
+          <div className="p-2.5 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-[11px] text-red-700 font-medium mb-2">
+              삭제하려면 PIN 번호를 입력하세요
+              {items.length > 0 && (
+                <span className="block text-[10px] text-red-500 font-normal mt-0.5">
+                  수납된 물품 {items.length}개도 함께 삭제됩니다
+                </span>
+              )}
+            </p>
+            <div className="flex gap-1.5">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pinValue}
+                onChange={(e) => {
+                  setPinValue(e.target.value.replace(/\D/g, ''));
+                  setPinError(false);
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && pinValue.length === 4) handlePinSubmit(); if (e.key === 'Escape') handlePinCancel(); }}
+                placeholder="PIN 4자리"
+                autoFocus
+                className={`flex-1 px-2 py-1.5 text-sm text-center tracking-widest bg-white border rounded-md outline-none transition-default ${
+                  pinError ? 'border-red-400 bg-red-50' : 'border-red-200 focus:border-red-400'
+                }`}
+              />
+              <button
+                onClick={handlePinSubmit}
+                disabled={pinValue.length !== 4}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-default disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                확인
+              </button>
+              <button
+                onClick={handlePinCancel}
+                className="px-2.5 py-1.5 text-xs text-text-tertiary bg-bg-secondary border border-border-primary rounded-md hover:bg-bg-tertiary transition-default"
+              >
+                취소
+              </button>
+            </div>
+            {pinError && (
+              <p className="mt-1.5 text-[10px] text-red-500 font-medium">PIN이 올바르지 않습니다</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Items Section */}
