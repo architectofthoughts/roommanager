@@ -58,26 +58,30 @@ export default function MobileBottomBar({
             <rect x="14" y="4" width="4" height="14" rx="0.5" />
           </svg>
         }
-        label="통계"
+        label="대시보드"
       />
       <NavButton
         onClick={onOpenRoomAnalysis}
         icon={
-          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-            <rect x="2" y="4" width="16" height="12" rx="1.5" />
-            <path d="M6 9h8M6 12h4" />
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="16" height="12" rx="2" />
+            <circle cx="10" cy="11" r="3" />
+            <path d="M7.5 5L8.5 3h3l1 2" />
           </svg>
         }
-        label="방분석"
+        label="가구추가"
       />
       <NavButton
         onClick={onOpenGemini}
         icon={
-          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-            <path d="M10 2v16M2 10h16M4.5 4.5l11 11M15.5 4.5l-11 11" />
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="16" height="12" rx="2" />
+            <circle cx="10" cy="11" r="3" />
+            <path d="M7.5 5L8.5 3h3l1 2" />
+            <path d="M15 8h1" />
           </svg>
         }
-        label="물품분석"
+        label="물품추가"
       />
     </nav>
   );

@@ -161,6 +161,10 @@ export default function App() {
                 setMobileLeftOpen(false);
                 setMobileRightOpen(true);
               }}
+              onOpenRoomAnalysis={() => {
+                setMobileLeftOpen(false);
+                setRoomAnalysisOpen(true);
+              }}
             />
           </div>
         </div>
@@ -193,7 +197,13 @@ export default function App() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar overscroll-contain">
-              <RightSidebar mobile />
+              <RightSidebar
+                mobile
+                onOpenGemini={() => {
+                  closeMobileRight();
+                  setGeminiOpen(true);
+                }}
+              />
             </div>
           </div>
         </div>

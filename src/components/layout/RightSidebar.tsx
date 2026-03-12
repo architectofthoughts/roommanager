@@ -329,9 +329,10 @@ function CompactHeader({ furniture, itemCount, editExpanded, onToggleEdit, onDes
 
 interface RightSidebarProps {
   mobile?: boolean;
+  onOpenGemini?: () => void;
 }
 
-export default function RightSidebar({ mobile }: RightSidebarProps) {
+export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps) {
   const { updateFurniture, deleteFurniture, selectFurniture, addItem, updateItem, deleteItem } = useStore();
   const furniture = useFurniture();
   const items = useItems();
@@ -549,6 +550,28 @@ export default function RightSidebar({ mobile }: RightSidebarProps) {
         <div className="p-4 border-t border-border-primary bg-bg-primary">
           <h4 className="text-[11px] font-semibold text-text-tertiary mb-2">물품 추가</h4>
           {renderAddItemForm()}
+
+          {/* Photo add shortcut — mobile only */}
+          {onOpenGemini && (
+            <>
+              <div className="flex items-center gap-2 mt-3 mb-1.5">
+                <div className="flex-1 h-px bg-border-primary" />
+                <span className="text-[10px] text-text-tertiary">또는</span>
+                <div className="flex-1 h-px bg-border-primary" />
+              </div>
+              <button
+                onClick={onOpenGemini}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-medium rounded-lg bg-accent-primary/10 text-accent-secondary border border-accent-primary/20 hover:bg-accent-primary/15 transition-default active:scale-[0.98]"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="5" width="16" height="12" rx="2" />
+                  <circle cx="10" cy="11" r="3" />
+                  <path d="M7.5 5L8.5 3h3l1 2" />
+                </svg>
+                사진으로 물품 추가
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
