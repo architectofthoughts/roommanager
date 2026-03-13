@@ -5,7 +5,7 @@ import { useStore, useRoom } from '../../store/useStore';
 
 export default function RoomCanvas() {
   const room = useRoom();
-  const { selectedFurnitureId, selectFurniture, updateFurniture } = useStore();
+  const { selectedFurnitureId, selectFurniture, updateFurniture, themeMode } = useStore();
   const { gridWidth, gridHeight, cellSize } = room;
 
   const stageWidth = gridWidth * cellSize;
@@ -16,6 +16,24 @@ export default function RoomCanvas() {
   const shapeRefs = useRef<Record<string, Konva.Node>>({});
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+
+  const themeColors = themeMode === 'dark'
+    ? {
+        grid: '#57473D',
+        gridStrong: '#6B574A',
+        surface: '#2A221D',
+        border: '#90725B',
+        label: '#F6ECDF',
+        accent: '#C79A72',
+      }
+    : {
+        grid: '#E0DBD4',
+        gridStrong: '#C8C0B6',
+        surface: '#FAFAF8',
+        border: '#C8C0B6',
+        label: '#1A1A1A',
+        accent: '#C4956A',
+      };
 
   // Fit stage into container
   useEffect(() => {
@@ -108,7 +126,7 @@ export default function RoomCanvas() {
       <Line
         key={`v-${i}`}
         points={[i * cellSize, 0, i * cellSize, stageHeight]}
-        stroke="#E0DBD4"
+        stroke={i % 5 === 0 ? themeColors.gridStrong : themeColors.grid}
         strokeWidth={i % 5 === 0 ? 0.8 : 0.3}
         listening={false}
       />
@@ -119,7 +137,7 @@ export default function RoomCanvas() {
       <Line
         key={`h-${j}`}
         points={[0, j * cellSize, stageWidth, j * cellSize]}
-        stroke="#E0DBD4"
+        stroke={j % 5 === 0 ? themeColors.gridStrong : themeColors.grid}
         strokeWidth={j % 5 === 0 ? 0.8 : 0.3}
         listening={false}
       />
@@ -150,7 +168,7 @@ export default function RoomCanvas() {
             y={0}
             width={stageWidth}
             height={stageHeight}
-            fill="#FAFAF8"
+            fill={themeColors.surface}
             cornerRadius={4}
             listening={false}
           />
@@ -164,7 +182,7 @@ export default function RoomCanvas() {
             y={0}
             width={stageWidth}
             height={stageHeight}
-            stroke="#C8C0B6"
+            stroke={themeColors.border}
             strokeWidth={1.5}
             cornerRadius={4}
             listening={false}
@@ -182,7 +200,7 @@ export default function RoomCanvas() {
             const bw = f.borderWidth ?? 1;
             const bc = f.borderColor ?? f.color;
             const showBorder = bs !== 'none';
-            const strokeColor = isSelected ? '#C4956A' : (showBorder ? bc : undefined);
+            const strokeColor = isSelected ? themeColors.accent : (showBorder ? bc : undefined);
             const strokeWidth = isSelected ? 2 : (showBorder ? bw : 0);
             const dashArray = bs === 'dashed' && !isSelected ? [6, 4] : undefined;
             const alpha = Math.round((f.opacity ?? 0.33) * 255).toString(16).padStart(2, '0');
@@ -240,7 +258,7 @@ export default function RoomCanvas() {
                   align="center"
                   fontSize={11}
                   fontFamily="Pretendard Variable, system-ui, sans-serif"
-                  fill="#1A1A1A"
+                  fill={themeColors.label}
                   listening={false}
                 />
               </Group>
@@ -258,11 +276,11 @@ export default function RoomCanvas() {
               }
               return newBox;
             }}
-            anchorFill="#FAFAF8"
-            anchorStroke="#C4956A"
+            anchorFill={themeColors.surface}
+            anchorStroke={themeColors.accent}
             anchorSize={8}
             anchorCornerRadius={2}
-            borderStroke="#C4956A"
+            borderStroke={themeColors.accent}
             borderDash={[4, 3]}
           />
         </Layer>

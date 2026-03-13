@@ -116,9 +116,9 @@ export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
     <Modal isOpen={isOpen} onClose={handleClose} title="사진으로 물품 분석" width="max-w-2xl">
       {/* Demo badge */}
       {!available && (
-        <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
-          <span className="text-[10px] font-bold text-amber-700 bg-amber-200 px-1.5 py-0.5 rounded">데모 모드</span>
-          <span className="text-xs text-amber-700">
+        <div className="mb-3 px-3 py-2 bg-warning-soft border border-warning-border rounded-lg flex items-center gap-2">
+          <span className="text-[10px] font-bold text-warning-text bg-warning-border/35 px-1.5 py-0.5 rounded">데모 모드</span>
+          <span className="text-xs text-warning-text">
             API 키가 설정되지 않아 샘플 데이터가 표시됩니다.
           </span>
         </div>
@@ -138,7 +138,7 @@ export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
           }`}
         >
           <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-bg-secondary flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#9B9590" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" className="text-text-tertiary" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="16" height="14" rx="2" />
               <circle cx="7" cy="8" r="1.5" />
               <path d="M18 13l-4-4-6 6" />
@@ -166,7 +166,7 @@ export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
             <img src={preview} alt="업로드된 이미지" className="w-full max-h-48 object-contain bg-bg-secondary" />
             <button
               onClick={() => { setFile(null); setPreview(null); setSuggestions([]); }}
-              className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-default"
+              className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--color-overlay-soft)] text-white hover:bg-[var(--color-overlay-strong)] transition-default"
             >
               <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M1 1l12 12M13 1L1 13" />
@@ -198,7 +198,7 @@ export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
 
       {/* Error */}
       {error && (
-        <div className="my-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+        <div className="my-3 px-3 py-2 bg-danger-soft border border-danger-border rounded-lg text-xs text-danger-text">
           {error}
         </div>
       )}
@@ -277,9 +277,9 @@ export default function GeminiModal({ isOpen, onClose }: GeminiModalProps) {
                       </div>
                       {/* Action type */}
                       <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
-                        s.action === 'add' ? 'bg-green-100 text-green-700' :
-                        s.action === 'update' ? 'bg-blue-100 text-blue-700' :
-                        'bg-red-100 text-red-700'
+                        s.action === 'add' ? 'bg-success-soft text-success-text' :
+                        s.action === 'update' ? 'bg-info-soft text-info-text' :
+                        'bg-danger-soft text-danger-text'
                       }`}>
                         {s.action === 'add' ? '추가' : s.action === 'update' ? '수정' : '삭제'}
                       </span>

@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Furniture, StorageItem, Room, RoomManagerData, FurnitureShape, FurnitureCategory } from '../types';
 
 const STORAGE_KEY = 'roommanager-data';
+const THEME_KEY = 'roommanager-theme';
+
+export type ThemeMode = 'light' | 'dark';
 
 function createDefaultRoom(name = '내 방'): Room {
   return {
@@ -58,11 +61,25 @@ function saveData(data: RoomManagerData) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function loadThemeMode(): ThemeMode {
+  try {
+    const raw = localStorage.getItem(THEME_KEY);
+    return raw === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+function saveThemeMode(themeMode: ThemeMode) {
+  localStorage.setItem(THEME_KEY, themeMode);
+}
+
 interface RoomStore {
   rooms: Room[];
   activeRoomId: string;
   selectedFurnitureId: string | null;
   searchQuery: string;
+  themeMode: ThemeMode;
 
   // Room management
   addRoom: (name: string) => void;
@@ -89,6 +106,7 @@ interface RoomStore {
   // Search
   setSearchQuery: (query: string) => void;
   getFilteredItems: () => StorageItem[];
+  setThemeMode: (themeMode: ThemeMode) => void;
 
   // Room properties
   updateRoom: (updates: Partial<Room>) => void;
@@ -109,6 +127,7 @@ export const useStore = create<RoomStore>((set, get) => ({
   activeRoomId: initialData.activeRoomId,
   selectedFurnitureId: null,
   searchQuery: '',
+  themeMode: loadThemeMode(),
 
   // Room management
   addRoom: (name) => {
@@ -330,6 +349,11 @@ export const useStore = create<RoomStore>((set, get) => ({
   },
 
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  setThemeMode: (themeMode) => {
+    saveThemeMode(themeMode);
+    set({ themeMode });
+  },
 
   getFilteredItems: () => {
     const state = get();

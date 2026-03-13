@@ -12,6 +12,24 @@
   --color-text-tertiary: #9B9590;
   --color-border-primary: #E0DBD4;
   --color-border-secondary: #D0C8BE;
+  --color-canvas-surface: #FAFAF8;
+  --color-canvas-grid: #E0DBD4;
+  --color-canvas-grid-strong: #C8C0B6;
+  --color-canvas-border: #C8C0B6;
+  --color-canvas-label: #1A1A1A;
+  --color-overlay-strong: rgba(0, 0, 0, 0.4);
+  --color-overlay-soft: rgba(0, 0, 0, 0.3);
+  --color-danger-soft: #FDF2F2;
+  --color-danger-soft-hover: #FCE7E7;
+  --color-danger-border: #F5C9C9;
+  --color-danger-text: #B64545;
+  --color-warning-soft: #FEF6E7;
+  --color-warning-border: #EBCB86;
+  --color-warning-text: #9A6A14;
+  --color-success-soft: #E8F3E8;
+  --color-success-text: #2F7A42;
+  --color-info-soft: #E8EFFC;
+  --color-info-text: #355EAF;
 
   --color-cat-storage: #8B5E3C;
   --color-cat-bed: #6B8EC4;
@@ -21,6 +39,38 @@
   --color-cat-other: #B0A090;
 
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
+
+:root[data-theme='dark'] {
+  --color-bg-primary: #221b17;
+  --color-bg-secondary: #2d241f;
+  --color-bg-tertiary: #3a2f29;
+  --color-accent-primary: #c79a72;
+  --color-accent-secondary: #e4c39f;
+  --color-accent-warm: #d8ae84;
+  --color-text-primary: #f3e8da;
+  --color-text-secondary: #c9b7a6;
+  --color-text-tertiary: #9c8a7b;
+  --color-border-primary: #4a3c34;
+  --color-border-secondary: #5a4a40;
+  --color-canvas-surface: #2a221d;
+  --color-canvas-grid: #57473d;
+  --color-canvas-grid-strong: #6b574a;
+  --color-canvas-border: #90725b;
+  --color-canvas-label: #f6ecdf;
+  --color-overlay-strong: rgba(10, 8, 7, 0.68);
+  --color-overlay-soft: rgba(10, 8, 7, 0.54);
+  --color-danger-soft: #3f2624;
+  --color-danger-soft-hover: #55302d;
+  --color-danger-border: #7c4a44;
+  --color-danger-text: #f2b8b2;
+  --color-warning-soft: #423222;
+  --color-warning-border: #8c6b37;
+  --color-warning-text: #f0cf91;
+  --color-success-soft: #243428;
+  --color-success-text: #9fd3a7;
+  --color-info-soft: #233244;
+  --color-info-text: #a8c7ff;
 }
 
 @layer base {
@@ -49,6 +99,7 @@
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     overscroll-behavior: none;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
   }
 
   @media (min-width: 768px) {
@@ -69,6 +120,11 @@
   button {
     font-family: inherit;
     font-size: inherit;
+    color: inherit;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent-primary) 30%, transparent);
   }
 }
 

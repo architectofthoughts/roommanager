@@ -232,16 +232,16 @@ function FurnitureEditFields({ furniture, items, mobile, updateFurniture, delete
       {deleteStep === 'idle' ? (
         <button
           onClick={handleDeleteFurniture}
-          className={`w-full ${py} text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-default`}
+          className={`w-full ${py} text-xs font-medium text-danger-text bg-danger-soft border border-danger-border rounded-md hover:bg-danger-soft-hover transition-default`}
         >
           가구 삭제
         </button>
       ) : (
-        <div className="p-2.5 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-[11px] text-red-700 font-medium mb-2">
+        <div className="p-2.5 bg-danger-soft border border-danger-border rounded-md">
+          <p className="text-[11px] text-danger-text font-medium mb-2">
             삭제하려면 PIN 번호를 입력하세요
             {items.length > 0 && (
-              <span className="block text-[10px] text-red-500 font-normal mt-0.5">
+              <span className="block text-[10px] text-danger-text/80 font-normal mt-0.5">
                 수납된 물품 {items.length}개도 함께 삭제됩니다
               </span>
             )}
@@ -253,16 +253,16 @@ function FurnitureEditFields({ furniture, items, mobile, updateFurniture, delete
               onKeyDown={(e) => { if (e.key === 'Enter' && pinValue.length === 4) handlePinSubmit(); if (e.key === 'Escape') handlePinCancel(); }}
               placeholder="PIN 4자리"
               autoFocus
-              className={`flex-1 px-2 ${py} text-sm text-center tracking-widest bg-white border rounded-md outline-none transition-default ${
-                pinError ? 'border-red-400 bg-red-50' : 'border-red-200 focus:border-red-400'
+              className={`flex-1 px-2 ${py} text-sm text-center tracking-widest bg-bg-primary border rounded-md outline-none transition-default ${
+                pinError ? 'border-danger-text bg-danger-soft' : 'border-danger-border focus:border-danger-text'
               }`}
             />
             <button onClick={handlePinSubmit} disabled={pinValue.length !== 4}
-              className={`px-3 ${py} text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-default disabled:opacity-40 disabled:cursor-not-allowed`}>확인</button>
+              className={`px-3 ${py} text-xs font-medium text-white bg-danger-text rounded-md hover:opacity-90 transition-default disabled:opacity-40 disabled:cursor-not-allowed`}>확인</button>
             <button onClick={handlePinCancel}
               className={`px-2.5 ${py} text-xs text-text-tertiary bg-bg-secondary border border-border-primary rounded-md hover:bg-bg-tertiary transition-default`}>취소</button>
           </div>
-          {pinError && <p className="mt-1.5 text-[10px] text-red-500 font-medium">PIN이 올바르지 않습니다</p>}
+          {pinError && <p className="mt-1.5 text-[10px] text-danger-text font-medium">PIN이 올바르지 않습니다</p>}
         </div>
       )}
     </div>
@@ -368,7 +368,7 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
       <aside className="w-[320px] shrink-0 border-l border-border-primary bg-bg-primary flex flex-col items-center justify-center h-full">
         <div className="text-center px-8">
           <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-bg-secondary flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#9B9590" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" className="text-text-tertiary" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="16" height="13" rx="2" />
               <path d="M6 4V2.5A1.5 1.5 0 0 1 7.5 1h5A1.5 1.5 0 0 1 14 2.5V4" />
               <path d="M2 10h16" />
@@ -451,7 +451,7 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
                         </svg>
                       </button>
                       <button onClick={() => deleteItem(item.id)}
-                        className={`${actionBtnSize} flex items-center justify-center rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-default`}
+                        className={`${actionBtnSize} flex items-center justify-center rounded text-text-tertiary hover:text-danger-text hover:bg-danger-soft transition-default`}
                         title="삭제">
                         <svg width={mobile ? 12 : 11} height={mobile ? 12 : 11} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
                           <path d="M1.5 3h9M4.5 3V1.5h3V3M3 3l.5 7.5h5L9 3" />

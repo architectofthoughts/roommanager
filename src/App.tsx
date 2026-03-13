@@ -14,7 +14,7 @@ const RoomAnalysisModal = lazy(() => import('./components/gemini/RoomAnalysisMod
 
 function ModalFallback() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-strong)]">
       <div className="bg-bg-primary rounded-xl px-8 py-6 text-sm text-text-secondary">
         불러오는 중...
       </div>
@@ -72,6 +72,7 @@ export default function App() {
   const isMobile = useIsMobile();
   const selectedFurnitureId = useStore((s) => s.selectedFurnitureId);
   const selectFurniture = useStore((s) => s.selectFurniture);
+  const themeMode = useStore((s) => s.themeMode);
 
   const [geminiOpen, setGeminiOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
@@ -99,6 +100,10 @@ export default function App() {
       setMobileRightOpen(false);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode;
+  }, [themeMode]);
 
   const closeMobileRight = () => {
     setMobileRightOpen(false);
@@ -146,7 +151,7 @@ export default function App() {
       {isMobile && mobileLeftOpen && (
         <div className="fixed inset-0 z-40 top-12">
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0 bg-[var(--color-overlay-soft)]"
             style={{ animation: 'fadeIn 150ms ease-out' }}
             onClick={() => setMobileLeftOpen(false)}
           />
@@ -174,7 +179,7 @@ export default function App() {
       {isMobile && mobileRightOpen && selectedFurnitureId && (
         <div className="fixed inset-0 z-40 top-12">
           <div
-            className="absolute inset-0 bg-black/30"
+            className="absolute inset-0 bg-[var(--color-overlay-soft)]"
             style={{ animation: 'fadeIn 150ms ease-out' }}
             onClick={closeMobileRight}
           />

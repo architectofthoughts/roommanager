@@ -11,7 +11,7 @@ interface TopBarProps {
 export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }: TopBarProps) {
   const mobile = useIsMobile();
   const room = useRoom();
-  const { rooms, activeRoomId, updateRoom, switchRoom, addRoom, deleteRoom, duplicateRoom, renameRoom, searchQuery, setSearchQuery } = useStore();
+  const { rooms, activeRoomId, updateRoom, switchRoom, addRoom, deleteRoom, duplicateRoom, renameRoom, searchQuery, setSearchQuery, themeMode, setThemeMode } = useStore();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(room.name);
   const [roomMenuOpen, setRoomMenuOpen] = useState(false);
@@ -74,6 +74,33 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
     setShowNewRoomInput(false);
     setRoomMenuOpen(false);
   };
+
+  const toggleTheme = () => {
+    setThemeMode(themeMode === 'dark' ? 'light' : 'dark');
+  };
+
+  const themeButton = (
+    <button
+      onClick={toggleTheme}
+      className={`flex items-center justify-center gap-1.5 rounded-lg border border-border-primary bg-bg-secondary text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-default ${
+        mobile ? 'w-9 h-9' : 'px-3 py-1.5 text-sm font-medium'
+      }`}
+      title={themeMode === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+      aria-label={themeMode === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+    >
+      {themeMode === 'dark' ? (
+        <svg width={mobile ? 17 : 14} height={mobile ? 17 : 14} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+          <circle cx="8" cy="8" r="3" />
+          <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M12.6 3.4l-1.4 1.4M4.8 11.2l-1.4 1.4" />
+        </svg>
+      ) : (
+        <svg width={mobile ? 17 : 14} height={mobile ? 17 : 14} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+          <path d="M10.8 1.8a5.9 5.9 0 1 0 3.4 10.8A6.5 6.5 0 0 1 10.8 1.8z" />
+        </svg>
+      )}
+      {!mobile && <span>{themeMode === 'dark' ? '라이트' : '다크'}</span>}
+    </button>
+  );
 
   return (
     <header className="flex flex-col shrink-0 border-b border-border-primary bg-bg-primary">
@@ -187,7 +214,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
                       {rooms.length > 1 && (
                         <button
                           onClick={() => { deleteRoom(r.id); if (rooms.length <= 2) setRoomMenuOpen(false); }}
-                          className={`flex items-center justify-center rounded text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-default ${
+                          className={`flex items-center justify-center rounded text-text-tertiary hover:text-danger-text hover:bg-danger-soft transition-default ${
                             mobile ? 'w-8 h-8' : 'w-6 h-6'
                           }`}
                           title="삭제"
@@ -306,19 +333,22 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
 
         {/* Search — desktop: inline input, mobile: toggle icon */}
         {mobile ? (
-          <button
-            onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-default ${
-              mobileSearchOpen || searchQuery
-                ? 'bg-accent-primary/10 text-accent-primary'
-                : 'text-text-tertiary hover:text-text-primary hover:bg-bg-secondary'
-            }`}
-          >
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <circle cx="7" cy="7" r="5.5" />
-              <path d="M11 11l3.5 3.5" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            {themeButton}
+            <button
+              onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+              className={`w-9 h-9 flex items-center justify-center rounded-lg transition-default ${
+                mobileSearchOpen || searchQuery
+                  ? 'bg-accent-primary/10 text-accent-primary'
+                  : 'text-text-tertiary hover:text-text-primary hover:bg-bg-secondary'
+              }`}
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="7" cy="7" r="5.5" />
+                <path d="M11 11l3.5 3.5" />
+              </svg>
+            </button>
+          </div>
         ) : (
           <div className="relative w-56">
             <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -348,6 +378,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
         {/* Action buttons — desktop only */}
         {!mobile && (
           <>
+            {themeButton}
             <button
               onClick={onOpenStats}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-bg-secondary text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-default border border-border-primary"
