@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
+import { ITEM_CATEGORIES, ITEM_STATUS_META, ITEM_STATUS_OPTIONS, matchesItemSearch } from '../../constants/items';
 import { useStore, useRoom } from '../../store/useStore';
-import type { FurnitureCategory, BorderStyle } from '../../types';
+import type { FurnitureCategory, BorderStyle, ItemStatus } from '../../types';
 
 const CATEGORIES: { value: FurnitureCategory; label: string }[] = [
   { value: 'storage', label: '수납장' },
@@ -21,8 +22,6 @@ const BADGE_CLASS: Record<FurnitureCategory, string> = {
   seating: 'badge-seating', appliance: 'badge-appliance', other: 'badge-other',
 };
 
-const ITEM_CATEGORIES = ['의류', '책', '전자기기', '식품', '생활용품', '문구', '주방용품', '기타'];
-
 const FURNITURE_COLORS = [
   '#8B5E3C', '#6B8EC4', '#C4956B', '#7BC46B', '#9B9B9B',
   '#B0A090', '#D47F5A', '#8B7EC4', '#C46B8E', '#5BAAB5',
@@ -35,6 +34,23 @@ function formatDate(iso: string) {
   const hours = d.getHours().toString().padStart(2, '0');
   const mins = d.getMinutes().toString().padStart(2, '0');
   return `${month}/${day} ${hours}:${mins}`;
+}
+
+function StatusBadge({ status }: { status: ItemStatus }) {
+  const meta = ITEM_STATUS_META[status];
+
+  return (
+    <span
+      className="text-[10px] font-medium px-1.5 py-px rounded border"
+      style={{
+        backgroundColor: meta.bg,
+        color: meta.text,
+        borderColor: meta.border,
+      }}
+    >
+      {meta.label}
+    </span>
+  );
 }
 
 /* ─── Shared edit fields (used by both mobile & desktop) ─── */
@@ -336,29 +352,53 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
   const { updateFurniture, deleteFurniture, selectFurniture, addItem, updateItem, deleteItem } = useStore();
   const furniture = useFurniture();
   const items = useItems();
+  const searchQuery = useStore((s) => s.searchQuery);
 
   const [newItemName, setNewItemName] = useState('');
   const [newItemQty, setNewItemQty] = useState(1);
   const [newItemCat, setNewItemCat] = useState('기타');
   const [newItemMemo, setNewItemMemo] = useState('');
   const [newItemFloor, setNewItemFloor] = useState(1);
+  const [newItemStatus, setNewItemStatus] = useState<ItemStatus>('stored');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editExpanded, setEditExpanded] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | ItemStatus>('all');
   const selectedFurnitureId = useStore((s) => s.selectedFurnitureId);
 
   // Reset on selection change
   useEffect(() => {
     setEditExpanded(false);
     setEditingItemId(null);
+    setStatusFilter('all');
   }, [selectedFurnitureId]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+      return matchesItemSearch(item, searchQuery);
+    });
+  }, [items, searchQuery, statusFilter]);
+
+  const statusCounts = useMemo(() => {
+    return items.reduce<Record<ItemStatus, number>>((acc, item) => {
+      acc[item.status] += 1;
+      return acc;
+    }, {
+      stored: 0,
+      'low-stock': 0,
+      'to-buy': 0,
+      packed: 0,
+    });
+  }, [items]);
 
   const handleAddItem = () => {
     if (!selectedFurnitureId || !newItemName.trim()) return;
-    addItem(selectedFurnitureId, newItemName.trim(), newItemQty, newItemCat, newItemMemo.trim(), newItemFloor);
+    addItem(selectedFurnitureId, newItemName.trim(), newItemQty, newItemCat, newItemMemo.trim(), newItemFloor, newItemStatus);
     setNewItemName('');
     setNewItemQty(1);
     setNewItemMemo('');
     setNewItemFloor(1);
+    setNewItemStatus('stored');
   };
 
   // Mobile: don't render empty state
@@ -388,13 +428,15 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
 
   const renderItemList = () => (
     <>
-      {items.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <div className={`text-center text-xs text-text-tertiary ${mobile ? 'py-4' : 'py-6'}`}>
-          수납된 물품이 없습니다.
+          {items.length === 0
+            ? '수납된 물품이 없습니다.'
+            : '현재 검색/상태 조건에 맞는 물품이 없습니다.'}
         </div>
       ) : (
         <div className="flex flex-col gap-1.5 pb-2">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <div key={item.id} className="p-2.5 bg-bg-secondary rounded-lg border border-border-primary">
               {editingItemId === item.id ? (
                 <div className="flex flex-col gap-1.5">
@@ -412,6 +454,12 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
                       className={`flex-1 px-2 ${itemPy} text-sm bg-bg-primary border border-border-primary rounded outline-none focus:border-accent-primary`}
                     >
                       {ITEM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <select value={item.status}
+                      onChange={(e) => updateItem(item.id, { status: e.target.value as ItemStatus })}
+                      className={`w-24 px-2 ${itemPy} text-sm bg-bg-primary border border-border-primary rounded outline-none focus:border-accent-primary`}
+                    >
+                      {ITEM_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </div>
                   <div className="flex gap-1.5 items-center">
@@ -438,6 +486,7 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
                       <div className="text-sm font-medium text-text-primary truncate">{item.name}</div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-[10px] text-text-tertiary bg-bg-tertiary px-1.5 py-px rounded">{item.category}</span>
+                        <StatusBadge status={item.status} />
                         <span className="text-[10px] text-text-tertiary">x{item.quantity}</span>
                         <span className="text-[10px] text-accent-primary/70 bg-accent-primary/8 px-1.5 py-px rounded">{item.floor ?? 1}층</span>
                       </div>
@@ -492,6 +541,12 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
         >
           {ITEM_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
+        <select value={newItemStatus}
+          onChange={(e) => setNewItemStatus(e.target.value as ItemStatus)}
+          className={`w-28 px-2 ${addItemPy} text-sm bg-bg-secondary border border-border-primary rounded-md outline-none focus:border-accent-primary transition-default`}
+        >
+          {ITEM_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
         <select value={newItemFloor}
           onChange={(e) => setNewItemFloor(Number(e.target.value))}
           className={`w-16 px-1 ${addItemPy} text-sm bg-bg-secondary border border-border-primary rounded-md outline-none focus:border-accent-primary transition-default`}
@@ -506,6 +561,36 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
         className={`px-2.5 ${addItemPy} text-sm bg-bg-secondary border border-border-primary rounded-md outline-none placeholder:text-text-tertiary focus:border-accent-primary transition-default`}
       />
     </div>
+  );
+
+  const renderStatusFilters = () => (
+    items.length > 0 ? (
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`px-2.5 py-1 text-[11px] rounded-full border transition-default ${
+            statusFilter === 'all'
+              ? 'border-accent-primary bg-accent-primary/10 text-accent-secondary font-medium'
+              : 'border-border-primary bg-bg-secondary text-text-secondary hover:bg-bg-tertiary'
+          }`}
+        >
+          전체 {items.length}
+        </button>
+        {ITEM_STATUS_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => setStatusFilter(option.value)}
+            className={`px-2.5 py-1 text-[11px] rounded-full border transition-default ${
+              statusFilter === option.value
+                ? 'border-accent-primary bg-accent-primary/10 text-accent-secondary font-medium'
+                : 'border-border-primary bg-bg-secondary text-text-secondary hover:bg-bg-tertiary'
+            }`}
+          >
+            {option.label} {statusCounts[option.value]}
+          </button>
+        ))}
+      </div>
+    ) : null
   );
 
   /* ─── Mobile layout ─── */
@@ -541,6 +626,12 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
             수납 물품
             <span className="ml-1.5 text-text-tertiary/60">{items.length}</span>
           </h3>
+          {(statusFilter !== 'all' || searchQuery.trim()) && (
+            <p className="mt-1 text-[10px] text-text-tertiary">
+              {filteredItems.length}개 표시 중
+            </p>
+          )}
+          {renderStatusFilters()}
         </div>
         <div className="px-4">
           {renderItemList()}
@@ -609,6 +700,12 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
             수납 물품
             <span className="ml-1.5 text-text-tertiary/60">{items.length}</span>
           </h3>
+          {(statusFilter !== 'all' || searchQuery.trim()) && (
+            <p className="mt-1 text-[10px] text-text-tertiary">
+              {filteredItems.length}개 표시 중
+            </p>
+          )}
+          {renderStatusFilters()}
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-4">

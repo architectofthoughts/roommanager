@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { Furniture, StorageItem, Room, RoomManagerData, FurnitureShape, FurnitureCategory } from '../types';
+import { matchesItemSearch } from '../constants/items';
+import type { Furniture, StorageItem, Room, RoomManagerData, FurnitureShape, FurnitureCategory, ItemStatus } from '../types';
 
 const STORAGE_KEY = 'roommanager-data';
 const THEME_KEY = 'roommanager-theme';
@@ -30,6 +31,7 @@ function migrateRoom(room: Room): Room {
   room.items = room.items.map(i => ({
     ...i,
     floor: i.floor ?? 1,
+    status: i.status ?? 'stored',
   }));
   return room;
 }
@@ -98,10 +100,10 @@ interface RoomStore {
   bulkAddFurniture: (items: Array<{ name: string; shape: import('../types').FurnitureShape; category: import('../types').FurnitureCategory; x: number; y: number; width: number; height: number }>) => void;
 
   // Item actions
-  addItem: (furnitureId: string, name: string, quantity: number, category: string, memo: string, floor?: number) => void;
+  addItem: (furnitureId: string, name: string, quantity: number, category: string, memo: string, floor?: number, status?: ItemStatus) => void;
   updateItem: (id: string, updates: Partial<StorageItem>) => void;
   deleteItem: (id: string) => void;
-  bulkAddItems: (items: Omit<StorageItem, 'id' | 'updatedAt'>[]) => void;
+  bulkAddItems: (items: Array<Omit<StorageItem, 'id' | 'updatedAt' | 'status'> & { status?: ItemStatus }>) => void;
 
   // Search
   setSearchQuery: (query: string) => void;
@@ -288,7 +290,7 @@ export const useStore = create<RoomStore>((set, get) => ({
     });
   },
 
-  addItem: (furnitureId, name, quantity, category, memo, floor = 1) => {
+  addItem: (furnitureId, name, quantity, category, memo, floor = 1, status = 'stored') => {
     const item: StorageItem = {
       id: uuidv4(),
       furnitureId,
@@ -297,6 +299,7 @@ export const useStore = create<RoomStore>((set, get) => ({
       category,
       memo,
       floor,
+      status,
       updatedAt: new Date().toISOString(),
     };
     set(state => {
@@ -337,6 +340,7 @@ export const useStore = create<RoomStore>((set, get) => ({
         ...item,
         id: uuidv4(),
         floor: item.floor ?? 1,
+        status: item.status ?? 'stored',
         updatedAt: new Date().toISOString(),
       }));
       const active = getActiveRoom(state.rooms, state.activeRoomId);
@@ -359,12 +363,7 @@ export const useStore = create<RoomStore>((set, get) => ({
     const state = get();
     const active = getActiveRoom(state.rooms, state.activeRoomId);
     if (!state.searchQuery.trim()) return active.items;
-    const q = state.searchQuery.toLowerCase();
-    return active.items.filter(item =>
-      item.name.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q) ||
-      item.memo.toLowerCase().includes(q)
-    );
+    return active.items.filter(item => matchesItemSearch(item, state.searchQuery));
   },
 
   updateRoom: (updates) => {
