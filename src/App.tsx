@@ -27,6 +27,126 @@ const CATEGORY_LABELS: Record<FurnitureCategory, string> = {
   seating: '의자', appliance: '가전', other: '기타',
 };
 
+function MobilePanels({
+  selectedFurnitureId,
+  onOpenGemini,
+  onOpenStats,
+  onOpenRoomAnalysis,
+  onDeselect,
+}: {
+  selectedFurnitureId: string | null;
+  onOpenGemini: () => void;
+  onOpenStats: () => void;
+  onOpenRoomAnalysis: () => void;
+  onDeselect: () => void;
+}) {
+  const [mobileLeftRequested, setMobileLeftRequested] = useState(false);
+  const [mobileRightRequested, setMobileRightRequested] = useState(false);
+
+  const mobileLeftOpen = mobileLeftRequested;
+  const mobileRightOpen = mobileRightRequested && !!selectedFurnitureId;
+
+  const closeMobileRight = () => {
+    setMobileRightRequested(false);
+  };
+
+  return (
+    <>
+      <MobileBottomBar
+        furniturePanelOpen={mobileLeftOpen}
+        onToggleFurniturePanel={() => {
+          setMobileLeftRequested((value) => !value);
+          if (mobileRightOpen) setMobileRightRequested(false);
+        }}
+        onOpenStats={() => {
+          setMobileLeftRequested(false);
+          onOpenStats();
+        }}
+        onOpenRoomAnalysis={() => {
+          setMobileLeftRequested(false);
+          onOpenRoomAnalysis();
+        }}
+        onOpenGemini={() => {
+          setMobileLeftRequested(false);
+          onOpenGemini();
+        }}
+      />
+
+      {selectedFurnitureId && !mobileRightOpen && !mobileLeftOpen && (
+        <MobileQuickBar
+          onOpenDetail={() => setMobileRightRequested(true)}
+          onDeselect={onDeselect}
+        />
+      )}
+
+      {mobileLeftOpen && (
+        <div className="fixed inset-0 z-40 top-12">
+          <div
+            className="absolute inset-0 bg-[var(--color-overlay-soft)]"
+            style={{ animation: 'fadeIn 150ms ease-out' }}
+            onClick={() => setMobileLeftRequested(false)}
+          />
+          <div
+            className="absolute left-0 top-0 bottom-0 w-[300px] max-w-[85vw] shadow-2xl"
+            style={{ animation: 'slideInLeft 200ms ease-out' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <LeftSidebar
+              mobile
+              onSelectMobile={() => {
+                setMobileLeftRequested(false);
+                setMobileRightRequested(true);
+              }}
+              onOpenRoomAnalysis={() => {
+                setMobileLeftRequested(false);
+                onOpenRoomAnalysis();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {mobileRightOpen && selectedFurnitureId && (
+        <div className="fixed inset-0 z-40 top-12">
+          <div
+            className="absolute inset-0 bg-[var(--color-overlay-soft)]"
+            style={{ animation: 'fadeIn 150ms ease-out' }}
+            onClick={closeMobileRight}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[75vh] bg-bg-primary rounded-t-2xl shadow-2xl flex flex-col"
+            style={{ animation: 'slideUp 250ms ease-out' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
+              <div className="w-8" />
+              <div className="w-10 h-1 rounded-full bg-border-secondary" />
+              <button
+                onClick={closeMobileRight}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-default"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                  <path d="M1 1l12 12M13 1L1 13" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar overscroll-contain">
+              <RightSidebar
+                key={`mobile-right-${selectedFurnitureId}`}
+                mobile
+                onOpenGemini={() => {
+                  closeMobileRight();
+                  onOpenGemini();
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function MobileQuickBar({ onOpenDetail, onDeselect }: { onOpenDetail: () => void; onDeselect: () => void }) {
   const room = useRoom();
   const selectedId = useStore((s) => s.selectedFurnitureId);
@@ -78,37 +198,9 @@ export default function App() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [roomAnalysisOpen, setRoomAnalysisOpen] = useState(false);
 
-  // Mobile panel state
-  const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
-  const [mobileRightOpen, setMobileRightOpen] = useState(false);
-
-  // Step 1: selecting furniture on mobile just closes left drawer (no auto-open of sheet)
-  // Step 2: user taps "상세" on quick bar to open sheet
-  useEffect(() => {
-    if (!isMobile) return;
-    if (selectedFurnitureId) {
-      setMobileLeftOpen(false);
-    } else {
-      setMobileRightOpen(false);
-    }
-  }, [isMobile, selectedFurnitureId]);
-
-  // Close mobile panels when switching to desktop
-  useEffect(() => {
-    if (!isMobile) {
-      setMobileLeftOpen(false);
-      setMobileRightOpen(false);
-    }
-  }, [isMobile]);
-
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
   }, [themeMode]);
-
-  const closeMobileRight = () => {
-    setMobileRightOpen(false);
-    // Don't deselect — quick bar stays visible, user can reopen or deselect explicitly
-  };
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-bg-primary">
@@ -122,96 +214,17 @@ export default function App() {
         {/* Desktop sidebars — inline */}
         {!isMobile && <LeftSidebar />}
         <RoomCanvas />
-        {!isMobile && <RightSidebar />}
+        {!isMobile && <RightSidebar key={`desktop-right-${selectedFurnitureId ?? 'none'}`} />}
       </div>
 
-      {/* Mobile bottom navigation */}
       {isMobile && (
-        <MobileBottomBar
-          furniturePanelOpen={mobileLeftOpen}
-          onToggleFurniturePanel={() => {
-            setMobileLeftOpen((v) => !v);
-            if (mobileRightOpen) setMobileRightOpen(false);
-          }}
-          onOpenStats={() => { setStatsOpen(true); setMobileLeftOpen(false); }}
-          onOpenRoomAnalysis={() => { setRoomAnalysisOpen(true); setMobileLeftOpen(false); }}
-          onOpenGemini={() => { setGeminiOpen(true); setMobileLeftOpen(false); }}
-        />
-      )}
-
-      {/* Mobile quick action bar — Step 1: light selection indicator */}
-      {isMobile && selectedFurnitureId && !mobileRightOpen && !mobileLeftOpen && (
-        <MobileQuickBar
-          onOpenDetail={() => setMobileRightOpen(true)}
+        <MobilePanels
+          selectedFurnitureId={selectedFurnitureId}
+          onOpenGemini={() => setGeminiOpen(true)}
+          onOpenStats={() => setStatsOpen(true)}
+          onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
           onDeselect={() => selectFurniture(null)}
         />
-      )}
-
-      {/* Mobile left drawer overlay */}
-      {isMobile && mobileLeftOpen && (
-        <div className="fixed inset-0 z-40 top-12">
-          <div
-            className="absolute inset-0 bg-[var(--color-overlay-soft)]"
-            style={{ animation: 'fadeIn 150ms ease-out' }}
-            onClick={() => setMobileLeftOpen(false)}
-          />
-          <div
-            className="absolute left-0 top-0 bottom-0 w-[300px] max-w-[85vw] shadow-2xl"
-            style={{ animation: 'slideInLeft 200ms ease-out' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <LeftSidebar
-              mobile
-              onSelectMobile={() => {
-                setMobileLeftOpen(false);
-                setMobileRightOpen(true);
-              }}
-              onOpenRoomAnalysis={() => {
-                setMobileLeftOpen(false);
-                setRoomAnalysisOpen(true);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Mobile right bottom sheet overlay — Step 2: full detail */}
-      {isMobile && mobileRightOpen && selectedFurnitureId && (
-        <div className="fixed inset-0 z-40 top-12">
-          <div
-            className="absolute inset-0 bg-[var(--color-overlay-soft)]"
-            style={{ animation: 'fadeIn 150ms ease-out' }}
-            onClick={closeMobileRight}
-          />
-          <div
-            className="absolute inset-x-0 bottom-0 max-h-[75vh] bg-bg-primary rounded-t-2xl shadow-2xl flex flex-col"
-            style={{ animation: 'slideUp 250ms ease-out' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drag handle + close */}
-            <div className="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
-              <div className="w-8" />
-              <div className="w-10 h-1 rounded-full bg-border-secondary" />
-              <button
-                onClick={closeMobileRight}
-                className="w-8 h-8 flex items-center justify-center rounded-full text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-default"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                  <path d="M1 1l12 12M13 1L1 13" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar overscroll-contain">
-              <RightSidebar
-                mobile
-                onOpenGemini={() => {
-                  closeMobileRight();
-                  setGeminiOpen(true);
-                }}
-              />
-            </div>
-          </div>
-        </div>
       )}
 
       <Suspense fallback={<ModalFallback />}>

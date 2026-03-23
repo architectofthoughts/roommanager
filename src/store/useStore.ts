@@ -5,6 +5,14 @@ import type { Furniture, StorageItem, Room, RoomManagerData, FurnitureShape, Fur
 
 const STORAGE_KEY = 'roommanager-data';
 const THEME_KEY = 'roommanager-theme';
+const DEFAULT_ROOM_CONFIG = {
+  gridWidth: 20,
+  gridHeight: 16,
+  cellSize: 40,
+} as const;
+const DEFAULT_FURNITURE_OPACITY = 0.33;
+const DEFAULT_ITEM_FLOOR = 1;
+const DEFAULT_ITEM_STATUS: ItemStatus = 'stored';
 
 export type ThemeMode = 'light' | 'dark';
 
@@ -12,28 +20,122 @@ function createDefaultRoom(name = '내 방'): Room {
   return {
     id: uuidv4(),
     name,
-    gridWidth: 20,
-    gridHeight: 16,
-    cellSize: 40,
+    ...DEFAULT_ROOM_CONFIG,
     furniture: [],
     items: [],
   };
 }
 
-function migrateRoom(room: Room): Room {
-  room.furniture = room.furniture.map(f => ({
-    ...f,
-    borderStyle: f.borderStyle ?? 'solid',
-    borderWidth: f.borderWidth ?? 1,
-    borderColor: f.borderColor ?? f.color,
-    opacity: f.opacity ?? 0.33,
-  }));
-  room.items = room.items.map(i => ({
-    ...i,
-    floor: i.floor ?? 1,
-    status: i.status ?? 'stored',
-  }));
-  return room;
+function getDefaultFurnitureColor(category: FurnitureCategory) {
+  return category === 'storage' ? '#8B5E3C' :
+    category === 'bed' ? '#6B8EC4' :
+    category === 'table' ? '#C4956B' :
+    category === 'seating' ? '#7BC46B' :
+    category === 'appliance' ? '#9B9B9B' : '#B0A090';
+}
+
+function isFurnitureCategory(value: unknown): value is FurnitureCategory {
+  return value === 'storage' ||
+    value === 'seating' ||
+    value === 'table' ||
+    value === 'bed' ||
+    value === 'appliance' ||
+    value === 'other';
+}
+
+function isFurnitureShape(value: unknown): value is FurnitureShape {
+  return value === 'rect' || value === 'circle';
+}
+
+function isItemStatus(value: unknown): value is ItemStatus {
+  return value === 'stored' ||
+    value === 'low-stock' ||
+    value === 'to-buy' ||
+    value === 'packed';
+}
+
+function normalizePositiveNumber(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function normalizeNumber(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeText(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function migrateFurniture(furniture: Partial<Furniture>): Furniture {
+  const category = isFurnitureCategory(furniture.category) ? furniture.category : 'other';
+  const color = normalizeText(furniture.color, getDefaultFurnitureColor(category));
+
+  return {
+    id: normalizeText(furniture.id, uuidv4()),
+    name: normalizeText(furniture.name, '가구'),
+    shape: isFurnitureShape(furniture.shape) ? furniture.shape : 'rect',
+    category,
+    x: normalizeNumber(furniture.x, 0),
+    y: normalizeNumber(furniture.y, 0),
+    width: normalizePositiveNumber(furniture.width, 1),
+    height: normalizePositiveNumber(furniture.height, 1),
+    rotation: normalizeNumber(furniture.rotation, 0),
+    color,
+    memo: normalizeText(furniture.memo),
+    borderStyle: furniture.borderStyle === 'dashed' || furniture.borderStyle === 'none' ? furniture.borderStyle : 'solid',
+    borderWidth: normalizePositiveNumber(furniture.borderWidth, 1),
+    borderColor: normalizeText(furniture.borderColor, color),
+    opacity: Math.min(1, Math.max(0, normalizeNumber(furniture.opacity, DEFAULT_FURNITURE_OPACITY))),
+  };
+}
+
+function migrateItem(item: Partial<StorageItem>): StorageItem {
+  return {
+    id: normalizeText(item.id, uuidv4()),
+    furnitureId: normalizeText(item.furnitureId),
+    name: normalizeText(item.name, '이름 없음'),
+    quantity: normalizePositiveNumber(item.quantity, 1),
+    category: normalizeText(item.category, '기타'),
+    memo: normalizeText(item.memo),
+    floor: normalizePositiveNumber(item.floor, DEFAULT_ITEM_FLOOR),
+    status: isItemStatus(item.status) ? item.status : DEFAULT_ITEM_STATUS,
+    updatedAt: normalizeText(item.updatedAt, new Date(0).toISOString()),
+  };
+}
+
+function migrateRoom(room: Partial<Room>, index = 0): Room {
+  const name = normalizeText(room.name, '').trim() || (index === 0 ? '내 방' : `방 ${index + 1}`);
+
+  return {
+    id: normalizeText(room.id, uuidv4()),
+    name,
+    gridWidth: normalizePositiveNumber(room.gridWidth, DEFAULT_ROOM_CONFIG.gridWidth),
+    gridHeight: normalizePositiveNumber(room.gridHeight, DEFAULT_ROOM_CONFIG.gridHeight),
+    cellSize: normalizePositiveNumber(room.cellSize, DEFAULT_ROOM_CONFIG.cellSize),
+    furniture: Array.isArray(room.furniture) ? room.furniture.map(migrateFurniture) : [],
+    items: Array.isArray(room.items) ? room.items.map(migrateItem) : [],
+  };
+}
+
+function cloneRoomWithNewIds(source: Room): Room {
+  const furnitureIdMap = new Map<string, string>();
+  const furniture = source.furniture.map((item) => {
+    const nextId = uuidv4();
+    furnitureIdMap.set(item.id, nextId);
+    return { ...item, id: nextId };
+  });
+
+  return {
+    ...source,
+    id: uuidv4(),
+    name: `${source.name} (복사)`,
+    furniture,
+    items: source.items.map((item) => ({
+      ...item,
+      id: uuidv4(),
+      furnitureId: furnitureIdMap.get(item.furnitureId) ?? item.furnitureId,
+    })),
+  };
 }
 
 function loadData(): RoomManagerData {
@@ -43,15 +145,18 @@ function loadData(): RoomManagerData {
       const parsed = JSON.parse(raw);
       // New multi-room format
       if (parsed.rooms && Array.isArray(parsed.rooms)) {
-        const data = parsed as RoomManagerData;
-        data.rooms = data.rooms.map(migrateRoom);
-        if (!data.rooms.find(r => r.id === data.activeRoomId)) {
-          data.activeRoomId = data.rooms[0].id;
+        const rooms = parsed.rooms.map((room: Partial<Room>, index: number) => migrateRoom(room, index));
+        if (rooms.length === 0) {
+          const room = createDefaultRoom();
+          return { rooms: [room], activeRoomId: room.id };
         }
-        return data;
+        const activeRoomId = typeof parsed.activeRoomId === 'string' && rooms.some((room: Room) => room.id === parsed.activeRoomId)
+          ? parsed.activeRoomId
+          : rooms[0].id;
+        return { rooms, activeRoomId };
       }
       // Legacy single-room format — migrate
-      const room = migrateRoom(parsed as Room);
+      const room = migrateRoom(parsed as Partial<Room>);
       return { rooms: [room], activeRoomId: room.id };
     }
   } catch { /* ignore */ }
@@ -60,7 +165,11 @@ function loadData(): RoomManagerData {
 }
 
 function saveData(data: RoomManagerData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Ignore persistence failures so the UI can continue running.
+  }
 }
 
 function loadThemeMode(): ThemeMode {
@@ -73,7 +182,11 @@ function loadThemeMode(): ThemeMode {
 }
 
 function saveThemeMode(themeMode: ThemeMode) {
-  localStorage.setItem(THEME_KEY, themeMode);
+  try {
+    localStorage.setItem(THEME_KEY, themeMode);
+  } catch {
+    // Ignore persistence failures so the UI can continue running.
+  }
 }
 
 interface RoomStore {
@@ -175,20 +288,7 @@ export const useStore = create<RoomStore>((set, get) => ({
     set(state => {
       const source = state.rooms.find(r => r.id === roomId);
       if (!source) return state;
-      const newRoom: Room = {
-        ...JSON.parse(JSON.stringify(source)),
-        id: uuidv4(),
-        name: `${source.name} (복사)`,
-      };
-      // Reassign all IDs
-      newRoom.furniture = newRoom.furniture.map((f: Furniture) => ({ ...f, id: uuidv4() }));
-      const oldToNew: Record<string, string> = {};
-      source.furniture.forEach((f, i) => { oldToNew[f.id] = newRoom.furniture[i].id; });
-      newRoom.items = newRoom.items.map((item: StorageItem) => ({
-        ...item,
-        id: uuidv4(),
-        furnitureId: oldToNew[item.furnitureId] ?? item.furnitureId,
-      }));
+      const newRoom = cloneRoomWithNewIds(source);
       const rooms = [...state.rooms, newRoom];
       const data: RoomManagerData = { rooms, activeRoomId: newRoom.id };
       saveData(data);
@@ -198,11 +298,7 @@ export const useStore = create<RoomStore>((set, get) => ({
 
   // Furniture actions
   addFurniture: (shape, category, name) => {
-    const defaultColor = category === 'storage' ? '#8B5E3C' :
-             category === 'bed' ? '#6B8EC4' :
-             category === 'table' ? '#C4956B' :
-             category === 'seating' ? '#7BC46B' :
-             category === 'appliance' ? '#9B9B9B' : '#B0A090';
+    const defaultColor = getDefaultFurnitureColor(category);
     const furniture: Furniture = {
       id: uuidv4(),
       name,
@@ -218,7 +314,7 @@ export const useStore = create<RoomStore>((set, get) => ({
       borderStyle: 'solid',
       borderWidth: 1,
       borderColor: defaultColor,
-      opacity: 0.33,
+      opacity: DEFAULT_FURNITURE_OPACITY,
     };
     set(state => {
       const active = getActiveRoom(state.rooms, state.activeRoomId);
@@ -256,12 +352,8 @@ export const useStore = create<RoomStore>((set, get) => ({
   selectFurniture: (id) => set({ selectedFurnitureId: id }),
 
   bulkAddFurniture: (items) => {
-    const colorMap: Record<string, string> = {
-      storage: '#8B5E3C', bed: '#6B8EC4', table: '#C4956B',
-      seating: '#7BC46B', appliance: '#9B9B9B', other: '#B0A090',
-    };
     const newFurniture: Furniture[] = items.map((item) => {
-      const color = colorMap[item.category] ?? '#B0A090';
+      const color = getDefaultFurnitureColor(item.category);
       return {
         id: uuidv4(),
         name: item.name,
@@ -277,7 +369,7 @@ export const useStore = create<RoomStore>((set, get) => ({
         borderStyle: 'solid' as const,
         borderWidth: 1,
         borderColor: color,
-        opacity: 0.33,
+        opacity: DEFAULT_FURNITURE_OPACITY,
       };
     });
     set(state => {
@@ -339,8 +431,8 @@ export const useStore = create<RoomStore>((set, get) => ({
       const items = newItems.map(item => ({
         ...item,
         id: uuidv4(),
-        floor: item.floor ?? 1,
-        status: item.status ?? 'stored',
+        floor: item.floor ?? DEFAULT_ITEM_FLOOR,
+        status: item.status ?? DEFAULT_ITEM_STATUS,
         updatedAt: new Date().toISOString(),
       }));
       const active = getActiveRoom(state.rooms, state.activeRoomId);

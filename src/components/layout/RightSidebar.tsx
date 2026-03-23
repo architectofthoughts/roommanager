@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { ITEM_CATEGORIES, ITEM_STATUS_META, ITEM_STATUS_OPTIONS, matchesItemSearch } from '../../constants/items';
 import { useStore, useRoom } from '../../store/useStore';
 import type { FurnitureCategory, BorderStyle, ItemStatus } from '../../types';
@@ -85,12 +85,6 @@ function FurnitureEditFields({ furniture, items, mobile, updateFurniture, delete
   const [deleteStep, setDeleteStep] = useState<'idle' | 'pin'>('idle');
   const [pinValue, setPinValue] = useState('');
   const [pinError, setPinError] = useState(false);
-
-  useEffect(() => {
-    setDeleteStep('idle');
-    setPinValue('');
-    setPinError(false);
-  }, [furniture.id]);
 
   const handleDeleteFurniture = () => {
     if (deleteStep === 'idle') {
@@ -364,13 +358,6 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
   const [editExpanded, setEditExpanded] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | ItemStatus>('all');
   const selectedFurnitureId = useStore((s) => s.selectedFurnitureId);
-
-  // Reset on selection change
-  useEffect(() => {
-    setEditExpanded(false);
-    setEditingItemId(null);
-    setStatusFilter('all');
-  }, [selectedFurnitureId]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

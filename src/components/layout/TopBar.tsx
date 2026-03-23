@@ -215,8 +215,8 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
   const [newRoomName, setNewRoomName] = useState('');
   const [showNewRoomInput, setShowNewRoomInput] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [searchResultsOpen, setSearchResultsOpen] = useState(false);
-  const [highlightedResultIndex, setHighlightedResultIndex] = useState(0);
+  const [searchPanelState, setSearchPanelState] = useState({ query: '', open: false });
+  const [searchHighlightState, setSearchHighlightState] = useState({ query: '', index: 0 });
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const newRoomInputRef = useRef<HTMLInputElement>(null);
@@ -226,6 +226,9 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
   const searchAreaRef = useRef<HTMLDivElement>(null);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const searchResultsOpen = Boolean(normalizedSearchQuery)
+    && (!mobile || mobileSearchOpen)
+    && (searchPanelState.query === normalizedSearchQuery ? searchPanelState.open : true);
 
   const searchResults = useMemo(() => {
     if (!normalizedSearchQuery) return [];
@@ -291,14 +294,14 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
     [searchResults]
   );
 
+  const highlightedResultIndex = searchHighlightState.query === normalizedSearchQuery
+    ? Math.min(searchHighlightState.index, Math.max(visibleSearchResults.length - 1, 0))
+    : 0;
+
   const activeRoomResultCount = useMemo(
     () => searchResults.filter((result) => result.roomId === activeRoomId).length,
     [searchResults, activeRoomId]
   );
-
-  useEffect(() => {
-    setNameValue(room.name);
-  }, [room.name]);
 
   useEffect(() => {
     if (editingName && nameInputRef.current) {
@@ -336,36 +339,25 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
     if (!searchResultsOpen) return;
     const handler = (event: MouseEvent) => {
       if (searchAreaRef.current && !searchAreaRef.current.contains(event.target as Node)) {
-        setSearchResultsOpen(false);
+        setSearchPanelState({ query: normalizedSearchQuery, open: false });
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [searchResultsOpen]);
+  }, [normalizedSearchQuery, searchResultsOpen]);
 
-  useEffect(() => {
-    if (!normalizedSearchQuery) {
-      setSearchResultsOpen(false);
-      setHighlightedResultIndex(0);
-      return;
-    }
+  const openSearchResults = () => {
+    if (!normalizedSearchQuery) return;
+    setSearchPanelState({ query: normalizedSearchQuery, open: true });
+  };
 
-    setSearchResultsOpen(true);
-    setHighlightedResultIndex(0);
-  }, [normalizedSearchQuery]);
+  const closeSearchResults = () => {
+    setSearchPanelState({ query: normalizedSearchQuery, open: false });
+  };
 
-  useEffect(() => {
-    if (mobile && !mobileSearchOpen) {
-      setSearchResultsOpen(false);
-      setHighlightedResultIndex(0);
-    }
-  }, [mobile, mobileSearchOpen]);
-
-  useEffect(() => {
-    if (highlightedResultIndex >= visibleSearchResults.length) {
-      setHighlightedResultIndex(0);
-    }
-  }, [highlightedResultIndex, visibleSearchResults.length]);
+  const resetHighlightedSearchResult = () => {
+    setSearchHighlightState({ query: normalizedSearchQuery, index: 0 });
+  };
 
   const commitName = () => {
     const trimmed = nameValue.trim();
@@ -385,8 +377,8 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
 
   const clearSearch = () => {
     setSearchQuery('');
-    setSearchResultsOpen(false);
-    setHighlightedResultIndex(0);
+    setSearchPanelState({ query: '', open: false });
+    setSearchHighlightState({ query: '', index: 0 });
   };
 
   const handleSearchResultSelect = (result: SearchResult) => {
@@ -395,8 +387,8 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
     }
 
     selectFurniture(result.furnitureId);
-    setSearchResultsOpen(false);
-    setHighlightedResultIndex(0);
+    closeSearchResults();
+    resetHighlightedSearchResult();
 
     if (mobile) {
       setMobileSearchOpen(false);
@@ -408,21 +400,29 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setSearchResultsOpen(true);
-      setHighlightedResultIndex((current) => (
-        visibleSearchResults.length === 0 ? 0 : (current + 1) % visibleSearchResults.length
-      ));
+      openSearchResults();
+      setSearchHighlightState((current) => {
+        const index = current.query === normalizedSearchQuery ? current.index : 0;
+        return {
+          query: normalizedSearchQuery,
+          index: visibleSearchResults.length === 0 ? 0 : (index + 1) % visibleSearchResults.length,
+        };
+      });
       return;
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setSearchResultsOpen(true);
-      setHighlightedResultIndex((current) => (
-        visibleSearchResults.length === 0
-          ? 0
-          : (current - 1 + visibleSearchResults.length) % visibleSearchResults.length
-      ));
+      openSearchResults();
+      setSearchHighlightState((current) => {
+        const index = current.query === normalizedSearchQuery ? current.index : 0;
+        return {
+          query: normalizedSearchQuery,
+          index: visibleSearchResults.length === 0
+            ? 0
+            : (index - 1 + visibleSearchResults.length) % visibleSearchResults.length,
+        };
+      });
       return;
     }
 
@@ -434,7 +434,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
 
     if (event.key === 'Escape') {
       event.preventDefault();
-      setSearchResultsOpen(false);
+      closeSearchResults();
       if (mobile) {
         setMobileSearchOpen(false);
       } else {
@@ -447,7 +447,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
     setThemeMode(themeMode === 'dark' ? 'light' : 'dark');
   };
 
-  const showSearchResults = searchResultsOpen && !!normalizedSearchQuery;
+  const showSearchResults = searchResultsOpen;
 
   const themeButton = (
     <button
@@ -717,7 +717,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
               onClick={() => {
                 setMobileSearchOpen(!mobileSearchOpen);
                 if (!mobileSearchOpen && normalizedSearchQuery) {
-                  setSearchResultsOpen(true);
+                  openSearchResults();
                 }
               }}
               className={`flex h-9 w-9 items-center justify-center rounded-lg transition-default ${
@@ -744,7 +744,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
               placeholder="물품 검색..."
               value={searchQuery}
               onFocus={() => {
-                if (normalizedSearchQuery) setSearchResultsOpen(true);
+                if (normalizedSearchQuery) openSearchResults();
               }}
               onChange={(event) => setSearchQuery(event.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -827,7 +827,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
               placeholder="물품 검색..."
               value={searchQuery}
               onFocus={() => {
-                if (normalizedSearchQuery) setSearchResultsOpen(true);
+                if (normalizedSearchQuery) openSearchResults();
               }}
               onChange={(event) => setSearchQuery(event.target.value)}
               onKeyDown={handleSearchKeyDown}

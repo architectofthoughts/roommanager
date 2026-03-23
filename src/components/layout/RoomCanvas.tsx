@@ -3,6 +3,10 @@ import { Stage, Layer, Rect, Circle, Text, Group, Transformer, Line } from 'reac
 import type Konva from 'konva';
 import { useStore, useRoom } from '../../store/useStore';
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 export default function RoomCanvas() {
   const room = useRoom();
   const { selectedFurnitureId, selectFurniture, updateFurniture, themeMode } = useStore();
@@ -16,6 +20,7 @@ export default function RoomCanvas() {
   const shapeRefs = useRef<Record<string, Konva.Node>>({});
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [containerSize, setContainerSize] = useState({ width: stageWidth, height: stageHeight });
 
   const themeColors = themeMode === 'dark'
     ? {
@@ -43,6 +48,7 @@ export default function RoomCanvas() {
     const fitStage = () => {
       const cw = container.clientWidth;
       const ch = container.clientHeight;
+      setContainerSize({ width: cw, height: ch });
       const scaleX = cw / stageWidth;
       const scaleY = ch / stageHeight;
       const scale = Math.min(scaleX, scaleY, 1) * 0.95;
@@ -75,14 +81,26 @@ export default function RoomCanvas() {
   const halfCell = cellSize / 2;
   const snap = useCallback((val: number) => Math.round(val / halfCell) * halfCell, [halfCell]);
 
+  const clampNodeToRoom = useCallback((node: Konva.Node) => {
+    const box = node.getClientRect({ skipStroke: true });
+    const nextX = node.x()
+      + (box.x < 0 ? -box.x : 0)
+      - (box.x + box.width > stageWidth ? box.x + box.width - stageWidth : 0);
+    const nextY = node.y()
+      + (box.y < 0 ? -box.y : 0)
+      - (box.y + box.height > stageHeight ? box.y + box.height - stageHeight : 0);
+
+    node.position({ x: nextX, y: nextY });
+    return { x: nextX, y: nextY };
+  }, [stageWidth, stageHeight]);
+
   const handleDragEnd = useCallback((id: string, e: Konva.KonvaEventObject<DragEvent>) => {
     const node = e.target;
-    const snappedX = snap(node.x());
-    const snappedY = snap(node.y());
-    node.x(snappedX);
-    node.y(snappedY);
-    updateFurniture(id, { x: snappedX / cellSize, y: snappedY / cellSize });
-  }, [snap, cellSize, updateFurniture]);
+    node.position({ x: snap(node.x()), y: snap(node.y()) });
+    const clamped = clampNodeToRoom(node);
+
+    updateFurniture(id, { x: clamped.x / cellSize, y: clamped.y / cellSize });
+  }, [snap, clampNodeToRoom, cellSize, updateFurniture]);
 
   const handleTransformEnd = useCallback((id: string, e: Konva.KonvaEventObject<Event>) => {
     const node = e.target;
@@ -98,20 +116,24 @@ export default function RoomCanvas() {
     node.scaleX(1);
     node.scaleY(1);
 
-    const newX = Math.round(node.x() / cellSize);
-    const newY = Math.round(node.y() / cellSize);
+    const maxX = Math.max(0, gridWidth - newWidth);
+    const maxY = Math.max(0, gridHeight - newHeight);
+    const newX = clamp(Math.round(node.x() / cellSize), 0, maxX);
+    const newY = clamp(Math.round(node.y() / cellSize), 0, maxY);
+    const nextRotation = Math.round(node.rotation());
 
-    node.x(newX * cellSize);
-    node.y(newY * cellSize);
+    node.rotation(nextRotation);
+    node.position({ x: newX * cellSize, y: newY * cellSize });
+    const clamped = clampNodeToRoom(node);
 
     updateFurniture(id, {
-      x: newX,
-      y: newY,
+      x: clamped.x / cellSize,
+      y: clamped.y / cellSize,
       width: newWidth,
       height: newHeight,
-      rotation: Math.round(node.rotation()),
+      rotation: nextRotation,
     });
-  }, [room.furniture, cellSize, updateFurniture]);
+  }, [room.furniture, cellSize, clampNodeToRoom, gridWidth, gridHeight, updateFurniture]);
 
   const handleStageClick = useCallback((e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (e.target === e.target.getStage()) {
@@ -152,8 +174,8 @@ export default function RoomCanvas() {
       </div>
 
       <Stage
-        width={containerRef.current?.clientWidth || stageWidth}
-        height={containerRef.current?.clientHeight || stageHeight}
+        width={containerSize.width}
+        height={containerSize.height}
         scaleX={stageScale}
         scaleY={stageScale}
         x={stagePos.x}
@@ -222,8 +244,8 @@ export default function RoomCanvas() {
                 onTransformEnd={(e) => handleTransformEnd(f.id, e)}
                 onDragMove={(e) => {
                   const node = e.target;
-                  node.x(snap(node.x()));
-                  node.y(snap(node.y()));
+                  node.position({ x: snap(node.x()), y: snap(node.y()) });
+                  clampNodeToRoom(node);
                 }}
               >
                 {f.shape === 'circle' ? (
@@ -269,9 +291,18 @@ export default function RoomCanvas() {
           <Transformer
             ref={transformerRef}
             rotateEnabled={true}
+            flipEnabled={false}
             rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
             boundBoxFunc={(oldBox, newBox) => {
               if (Math.abs(newBox.width) < cellSize || Math.abs(newBox.height) < cellSize) {
+                return oldBox;
+              }
+              if (
+                newBox.x < 0 ||
+                newBox.y < 0 ||
+                newBox.x + newBox.width > stageWidth ||
+                newBox.y + newBox.height > stageHeight
+              ) {
                 return oldBox;
               }
               return newBox;
