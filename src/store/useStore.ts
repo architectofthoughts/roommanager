@@ -1,7 +1,19 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { matchesItemSearch } from '../constants/items';
-import type { Furniture, StorageItem, Room, RoomManagerData, FurnitureShape, FurnitureCategory, ItemStatus } from '../types';
+import type {
+  Furniture,
+  StorageItem,
+  Room,
+  RoomManagerData,
+  FurnitureShape,
+  FurnitureCategory,
+  ItemStatus,
+  ThemeMode,
+  RoomManagerBackup,
+  BackupImportMode,
+  BackupImportSummary,
+} from '../types';
 
 const STORAGE_KEY = 'roommanager-data';
 const THEME_KEY = 'roommanager-theme';
@@ -13,8 +25,6 @@ const DEFAULT_ROOM_CONFIG = {
 const DEFAULT_FURNITURE_OPACITY = 0.33;
 const DEFAULT_ITEM_FLOOR = 1;
 const DEFAULT_ITEM_STATUS: ItemStatus = 'stored';
-
-export type ThemeMode = 'light' | 'dark';
 
 function createDefaultRoom(name = '내 방'): Room {
   return {
@@ -117,7 +127,7 @@ function migrateRoom(room: Partial<Room>, index = 0): Room {
   };
 }
 
-function cloneRoomWithNewIds(source: Room): Room {
+function cloneRoomWithNewIds(source: Room, name = `${source.name} (복사)`): Room {
   const furnitureIdMap = new Map<string, string>();
   const furniture = source.furniture.map((item) => {
     const nextId = uuidv4();
@@ -128,7 +138,7 @@ function cloneRoomWithNewIds(source: Room): Room {
   return {
     ...source,
     id: uuidv4(),
-    name: `${source.name} (복사)`,
+    name,
     furniture,
     items: source.items.map((item) => ({
       ...item,
@@ -138,30 +148,51 @@ function cloneRoomWithNewIds(source: Room): Room {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function createFallbackRoomManagerData(): RoomManagerData {
+  const room = createDefaultRoom();
+  return { rooms: [room], activeRoomId: room.id };
+}
+
+function migrateRoomManagerData(input: unknown): RoomManagerData | null {
+  if (!isRecord(input)) return null;
+
+  if (Array.isArray(input.rooms)) {
+    const rooms = input.rooms.map((room, index) => migrateRoom(isRecord(room) ? room as Partial<Room> : {}, index));
+    if (rooms.length === 0) {
+      return createFallbackRoomManagerData();
+    }
+
+    const activeRoomId = typeof input.activeRoomId === 'string' && rooms.some((room) => room.id === input.activeRoomId)
+      ? input.activeRoomId
+      : rooms[0].id;
+
+    return { rooms, activeRoomId };
+  }
+
+  const looksLikeLegacyRoom = 'name' in input || 'gridWidth' in input || 'gridHeight' in input || 'furniture' in input || 'items' in input;
+  if (!looksLikeLegacyRoom) return null;
+
+  const room = migrateRoom(input as Partial<Room>);
+  return { rooms: [room], activeRoomId: room.id };
+}
+
 function loadData(): RoomManagerData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // New multi-room format
-      if (parsed.rooms && Array.isArray(parsed.rooms)) {
-        const rooms = parsed.rooms.map((room: Partial<Room>, index: number) => migrateRoom(room, index));
-        if (rooms.length === 0) {
-          const room = createDefaultRoom();
-          return { rooms: [room], activeRoomId: room.id };
-        }
-        const activeRoomId = typeof parsed.activeRoomId === 'string' && rooms.some((room: Room) => room.id === parsed.activeRoomId)
-          ? parsed.activeRoomId
-          : rooms[0].id;
-        return { rooms, activeRoomId };
-      }
-      // Legacy single-room format — migrate
-      const room = migrateRoom(parsed as Partial<Room>);
-      return { rooms: [room], activeRoomId: room.id };
+      const data = migrateRoomManagerData(parsed);
+      if (data) return data;
     }
-  } catch { /* ignore */ }
-  const room = createDefaultRoom();
-  return { rooms: [room], activeRoomId: room.id };
+  } catch {
+    // Ignore malformed persisted data and fall back to a fresh workspace.
+  }
+
+  return createFallbackRoomManagerData();
 }
 
 function saveData(data: RoomManagerData) {
@@ -187,6 +218,40 @@ function saveThemeMode(themeMode: ThemeMode) {
   } catch {
     // Ignore persistence failures so the UI can continue running.
   }
+}
+
+function createBackupSnapshot(data: RoomManagerData, themeMode: ThemeMode): RoomManagerBackup {
+  return {
+    app: 'roommanager',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    themeMode,
+    data,
+  };
+}
+
+function parseBackupPayload(input: unknown): { data: RoomManagerData; themeMode?: ThemeMode } | null {
+  if (!isRecord(input)) return null;
+
+  if (input.app === 'roommanager' && input.version === 1 && 'data' in input) {
+    const data = migrateRoomManagerData(input.data);
+    if (!data) return null;
+    const themeMode = input.themeMode === 'dark' || input.themeMode === 'light' ? input.themeMode : undefined;
+    return { data, themeMode };
+  }
+
+  const data = migrateRoomManagerData(input);
+  if (!data) return null;
+  return { data };
+}
+
+function summarizeImportedRooms(rooms: Room[], mode: BackupImportMode): BackupImportSummary {
+  return {
+    mode,
+    roomsImported: rooms.length,
+    furnitureImported: rooms.reduce((sum, room) => sum + room.furniture.length, 0),
+    itemsImported: rooms.reduce((sum, room) => sum + room.items.length, 0),
+  };
 }
 
 interface RoomStore {
@@ -222,6 +287,8 @@ interface RoomStore {
   setSearchQuery: (query: string) => void;
   getFilteredItems: () => StorageItem[];
   setThemeMode: (themeMode: ThemeMode) => void;
+  exportBackup: () => RoomManagerBackup;
+  importBackup: (payload: unknown, mode: BackupImportMode) => BackupImportSummary;
 
   // Room properties
   updateRoom: (updates: Partial<Room>) => void;
@@ -449,6 +516,51 @@ export const useStore = create<RoomStore>((set, get) => ({
   setThemeMode: (themeMode) => {
     saveThemeMode(themeMode);
     set({ themeMode });
+  },
+
+  exportBackup: () => {
+    const state = get();
+    return createBackupSnapshot(
+      {
+        rooms: state.rooms,
+        activeRoomId: state.activeRoomId,
+      },
+      state.themeMode
+    );
+  },
+
+  importBackup: (payload, mode) => {
+    const parsed = parseBackupPayload(payload);
+    if (!parsed) {
+      throw new Error('지원하지 않는 백업 파일입니다. roommanager JSON 백업 파일인지 확인하세요.');
+    }
+
+    const summary = summarizeImportedRooms(parsed.data.rooms, mode);
+
+    set((state) => {
+      if (mode === 'merge') {
+        const importedRooms = parsed.data.rooms.map((room) => cloneRoomWithNewIds(room, room.name));
+        const rooms = [...state.rooms, ...importedRooms];
+        saveData({ rooms, activeRoomId: state.activeRoomId });
+        return {
+          rooms,
+          selectedFurnitureId: null,
+        };
+      }
+
+      const nextThemeMode = parsed.themeMode ?? state.themeMode;
+      saveData(parsed.data);
+      saveThemeMode(nextThemeMode);
+      return {
+        rooms: parsed.data.rooms,
+        activeRoomId: parsed.data.activeRoomId,
+        selectedFurnitureId: null,
+        searchQuery: '',
+        themeMode: nextThemeMode,
+      };
+    });
+
+    return summary;
   },
 
   getFilteredItems: () => {

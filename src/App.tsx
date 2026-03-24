@@ -11,6 +11,7 @@ import type { FurnitureCategory } from './types';
 const GeminiModal = lazy(() => import('./components/gemini/GeminiModal'));
 const StatsModal = lazy(() => import('./components/stats/StatsModal'));
 const RoomAnalysisModal = lazy(() => import('./components/gemini/RoomAnalysisModal'));
+const BackupModal = lazy(() => import('./components/common/BackupModal'));
 
 function ModalFallback() {
   return (
@@ -197,6 +198,7 @@ export default function App() {
   const [geminiOpen, setGeminiOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
   const [roomAnalysisOpen, setRoomAnalysisOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
@@ -208,6 +210,7 @@ export default function App() {
         onOpenGemini={() => setGeminiOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
         onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
+        onOpenBackup={() => setBackupOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -231,6 +234,7 @@ export default function App() {
         {geminiOpen && <GeminiModal isOpen={geminiOpen} onClose={() => setGeminiOpen(false)} />}
         {statsOpen && <StatsModal isOpen={statsOpen} onClose={() => setStatsOpen(false)} />}
         {roomAnalysisOpen && <RoomAnalysisModal isOpen={roomAnalysisOpen} onClose={() => setRoomAnalysisOpen(false)} />}
+        {backupOpen && <BackupModal isOpen={backupOpen} onClose={() => setBackupOpen(false)} />}
       </Suspense>
     </div>
   );

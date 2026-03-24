@@ -2,6 +2,8 @@ export type FurnitureShape = 'rect' | 'circle';
 export type FurnitureCategory = 'storage' | 'seating' | 'table' | 'bed' | 'appliance' | 'other';
 export type BorderStyle = 'solid' | 'dashed' | 'none';
 export type ItemStatus = 'stored' | 'low-stock' | 'to-buy' | 'packed';
+export type ThemeMode = 'light' | 'dark';
+export type BackupImportMode = 'replace' | 'merge';
 
 export interface Furniture {
   id: string;
@@ -65,4 +67,19 @@ export interface FurnitureSuggestion {
 export interface RoomManagerData {
   rooms: Room[];
   activeRoomId: string;
+}
+
+export interface RoomManagerBackup {
+  app: 'roommanager';
+  version: 1;
+  exportedAt: string;
+  themeMode: ThemeMode;
+  data: RoomManagerData;
+}
+
+export interface BackupImportSummary {
+  mode: BackupImportMode;
+  roomsImported: number;
+  furnitureImported: number;
+  itemsImported: number;
 }

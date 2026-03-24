@@ -6,6 +6,7 @@ interface TopBarProps {
   onOpenGemini: () => void;
   onOpenStats: () => void;
   onOpenRoomAnalysis: () => void;
+  onOpenBackup: () => void;
 }
 
 interface SearchResult {
@@ -190,7 +191,7 @@ function SearchResultsPanel({
   );
 }
 
-export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }: TopBarProps) {
+export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis, onOpenBackup }: TopBarProps) {
   const mobile = useIsMobile();
   const room = useRoom();
   const {
@@ -472,6 +473,20 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
     </button>
   );
 
+  const backupButton = (
+    <button
+      onClick={onOpenBackup}
+      className="flex items-center justify-center gap-1.5 rounded-lg border border-border-primary bg-bg-secondary px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-default"
+    >
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 2v7" />
+        <path d="M5.5 6.5L8 9l2.5-2.5" />
+        <path d="M2.5 12.5h11" />
+      </svg>
+      백업
+    </button>
+  );
+
   return (
     <header className="flex flex-col shrink-0 border-b border-border-primary bg-bg-primary">
       <div className={`flex items-center shrink-0 ${mobile ? 'h-12 gap-2 px-3' : 'h-13 gap-4 px-5'}`}>
@@ -598,6 +613,23 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
               </div>
 
               <div className="border-t border-border-primary p-2">
+                <button
+                  onClick={() => {
+                    onOpenBackup();
+                    setRoomMenuOpen(false);
+                  }}
+                  className={`mb-1 flex w-full items-center justify-center gap-1.5 rounded-md text-xs font-medium text-text-secondary hover:bg-accent-primary/5 hover:text-accent-secondary transition-default ${
+                    mobile ? 'py-2.5' : 'py-1.5'
+                  }`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2v7" />
+                    <path d="M5.5 6.5L8 9l2.5-2.5" />
+                    <path d="M2.5 12.5h11" />
+                  </svg>
+                  데이터 백업 / 복원
+                </button>
+
                 {showNewRoomInput ? (
                   <div className="flex gap-1.5">
                     <input
@@ -777,6 +809,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis }
 
         {!mobile && (
           <>
+            {backupButton}
             {themeButton}
             <button
               onClick={onOpenStats}
