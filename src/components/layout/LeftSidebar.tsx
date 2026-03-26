@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useStore, useRoom } from '../../store/useStore';
 import type { FurnitureShape, FurnitureCategory } from '../../types';
+import type { ExperimentalLayoutStrategy, ExperimentalLayoutSummary } from '../../utils/layoutEngine';
 
 const CATEGORIES: { value: FurnitureCategory; label: string }[] = [
   { value: 'storage', label: '수납장' },
@@ -35,19 +36,33 @@ interface LeftSidebarProps {
   onOpenRoomAnalysis?: () => void;
 }
 
+const LAYOUT_LABELS: Record<ExperimentalLayoutStrategy, string> = {
+  perimeter: '벽면 우선',
+  zoned: '존별 정렬',
+};
+
 export default function LeftSidebar({ mobile, onSelectMobile, onOpenRoomAnalysis }: LeftSidebarProps) {
   const room = useRoom();
-  const { selectedFurnitureId, addFurniture, selectFurniture } = useStore();
+  const { selectedFurnitureId, addFurniture, selectFurniture, applyExperimentalLayout } = useStore();
 
   const [shape, setShape] = useState<FurnitureShape>('rect');
   const [category, setCategory] = useState<FurnitureCategory>('storage');
   const [name, setName] = useState('');
+  const [layoutFeedback, setLayoutFeedback] = useState<ExperimentalLayoutSummary | null>(null);
+  const [isLayoutPending, startLayoutTransition] = useTransition();
 
   const handleAdd = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
     addFurniture(shape, category, trimmed);
     setName('');
+  };
+
+  const handleExperimentalLayout = (strategy: ExperimentalLayoutStrategy) => {
+    startLayoutTransition(() => {
+      const result = applyExperimentalLayout(strategy);
+      setLayoutFeedback(result);
+    });
   };
 
   return (
@@ -152,6 +167,61 @@ export default function LeftSidebar({ mobile, onSelectMobile, onOpenRoomAnalysis
               사진으로 가구 추가
             </button>
           </>
+        )}
+      </div>
+
+      <div className={`border-b border-border-primary ${mobile ? 'p-4' : 'p-4'}`}>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+            Layout Lab
+          </h3>
+          <span className="rounded-full bg-accent-primary/10 px-2 py-0.5 text-[10px] font-medium text-accent-secondary">
+            실험
+          </span>
+        </div>
+
+        <p className="text-xs leading-relaxed text-text-secondary">
+          현재 방의 가구를 자동으로 재배치합니다. 수동 배치를 덮어쓰는 프로토타입입니다.
+        </p>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {(['perimeter', 'zoned'] as const).map((strategy) => (
+            <button
+              key={strategy}
+              type="button"
+              onClick={() => handleExperimentalLayout(strategy)}
+              disabled={room.furniture.length === 0 || isLayoutPending}
+              className={`rounded-lg border px-3 text-xs font-medium transition-default ${
+                mobile ? 'py-2.5' : 'py-2'
+              } ${
+                room.furniture.length === 0 || isLayoutPending
+                  ? 'border-border-primary bg-bg-secondary text-text-tertiary opacity-60 cursor-not-allowed'
+                  : 'border-accent-primary/25 bg-accent-primary/10 text-accent-secondary hover:bg-accent-primary/15'
+              }`}
+            >
+              {LAYOUT_LABELS[strategy]}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-2 text-[11px] text-text-tertiary">
+          {room.furniture.length === 0
+            ? '가구를 하나 이상 추가하면 실행할 수 있습니다.'
+            : isLayoutPending
+              ? '배치 전략을 계산하는 중입니다...'
+              : '벽면 우선은 외곽 위주, 존별 정렬은 가구 카테고리별 영역 배치를 시도합니다.'}
+        </div>
+
+        {layoutFeedback && (
+          <div className="mt-3 rounded-xl border border-border-primary bg-bg-secondary px-3 py-2.5">
+            <div className="text-[11px] font-semibold text-text-primary">
+              {LAYOUT_LABELS[layoutFeedback.strategy]} 실행 결과
+            </div>
+            <div className="mt-1 text-[11px] leading-relaxed text-text-secondary">
+              {layoutFeedback.changedCount}개 위치 변경, {layoutFeedback.placedCount}개 자동 배치
+              {layoutFeedback.unplacedCount > 0 ? `, ${layoutFeedback.unplacedCount}개는 기존 위치 유지` : ''}
+            </div>
+          </div>
         )}
       </div>
 

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { matchesItemSearch } from '../constants/items';
+import { runExperimentalLayout, type ExperimentalLayoutStrategy, type ExperimentalLayoutSummary } from '../utils/layoutEngine';
 import type {
   Furniture,
   StorageItem,
@@ -273,6 +274,7 @@ interface RoomStore {
   updateFurniture: (id: string, updates: Partial<Furniture>) => void;
   deleteFurniture: (id: string) => void;
   selectFurniture: (id: string | null) => void;
+  applyExperimentalLayout: (strategy: ExperimentalLayoutStrategy) => ExperimentalLayoutSummary | null;
 
   // Bulk furniture
   bulkAddFurniture: (items: Array<{ name: string; shape: import('../types').FurnitureShape; category: import('../types').FurnitureCategory; x: number; y: number; width: number; height: number }>) => void;
@@ -417,6 +419,21 @@ export const useStore = create<RoomStore>((set, get) => ({
   },
 
   selectFurniture: (id) => set({ selectedFurnitureId: id }),
+
+  applyExperimentalLayout: (strategy) => {
+    const state = get();
+    const active = getActiveRoom(state.rooms, state.activeRoomId);
+    if (active.furniture.length === 0) return null;
+
+    const result = runExperimentalLayout(active, strategy);
+    const rooms = updateActiveRoom(state.rooms, state.activeRoomId, {
+      furniture: result.furniture,
+    });
+    saveData({ rooms, activeRoomId: state.activeRoomId });
+    set({ rooms, selectedFurnitureId: state.selectedFurnitureId });
+
+    return result.summary;
+  },
 
   bulkAddFurniture: (items) => {
     const newFurniture: Furniture[] = items.map((item) => {
