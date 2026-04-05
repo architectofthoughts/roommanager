@@ -77,6 +77,17 @@ export interface RoomManagerBackup {
   data: RoomManagerData;
 }
 
+export interface RemoteBackupSaveResult {
+  pin: string;
+  savedAt: string;
+}
+
+export interface RemoteBackupRecord {
+  pin: string;
+  savedAt: string;
+  backup: RoomManagerBackup;
+}
+
 export interface BackupImportSummary {
   mode: BackupImportMode;
   roomsImported: number;
