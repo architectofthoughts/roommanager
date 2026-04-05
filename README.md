@@ -8,6 +8,7 @@
 - **시각적 방 레이아웃** — Konva.js 기반 드래그 & 리사이즈 캔버스로 가구 배치
 - **방 크기 조절** — 상단 바에서 가로/세로 그리드 크기를 직접 조절 (4~50 범위)
 - **가구 관리** — 사각형/원형 가구 추가, 카테고리별 색상, 회전, 메모
+- **Layout Lab (실험)** — 벽면 우선/존별 정렬 전략으로 현재 방의 가구 자동 재배치 프로토타입
 - **가구 외곽선 편집** — 실선/점선/없음 스타일, 두께(0.5~5), 색상 커스터마이징
 - **정밀 이동** — 0.5셀 단위 스냅으로 가구를 정밀하게 배치
 - **물품 인벤토리** — 가구별 물품 등록/수정/삭제, 카테고리 분류, 층(1~10층) 관리
@@ -16,6 +17,7 @@
 - **물품 통계** — 카테고리별 분포, 가구별 보관 현황 대시보드
 - **검색 내비게이션** — 물품명/카테고리/메모/가구명/방 이름으로 전체 방 인벤토리를 검색하고 해당 가구로 즉시 이동
 - **데이터 백업/복원** — 현재 작업 공간을 JSON 파일로 내보내고, 전체 복원 또는 방 단위 추가 가져오기 지원
+- **PIN 서버 저장** — 현재 작업 공간 전체를 4자리 PIN으로 서버에 저장하고 다시 불러오기 지원
 - **자동 저장** — 모든 데이터는 브라우저 localStorage에 자동 저장
 - **데이터 마이그레이션** — 이전 버전 데이터를 자동으로 최신 스키마로 변환
 
@@ -79,6 +81,7 @@ npm run preview  # 빌드 결과를 로컬에서 미리보기
 ## 배포 (Cloudflare Pages)
 
 이 프로젝트는 GitHub Actions를 통해 Cloudflare Pages에 자동 배포됩니다.
+4자리 PIN 서버 저장 기능은 Cloudflare Pages Functions + KV 바인딩을 사용합니다.
 
 ### 자동 배포 설정
 
@@ -92,6 +95,12 @@ npm run preview  # 빌드 결과를 로컬에서 미리보기
 
 2. `main` 브랜치에 push하면 자동으로 빌드 및 배포됩니다.
 
+3. Cloudflare Pages 프로젝트의 **Settings > Bindings**에서 KV Namespace를 연결:
+
+   | 바인딩 | 설명 |
+   |--------|------|
+   | `ROOMMANAGER_PIN_STORE` | 4자리 PIN 기반 작업 공간 저장소 |
+
 ### 수동 배포
 
 ```bash
@@ -102,6 +111,8 @@ npm run build
 npx wrangler pages deploy dist --project-name=roommanager
 ```
 
+> `functions/` 디렉토리의 Pages Functions가 함께 배포되며, PIN 저장 기능은 `ROOMMANAGER_PIN_STORE` 바인딩이 있어야 동작합니다.
+
 ## 프로젝트 구조
 
 ```
@@ -111,6 +122,9 @@ src/
 ├── index.css                         # 글로벌 스타일 + Tailwind 테마
 ├── types/index.ts                    # TypeScript 타입 정의
 ├── store/useStore.ts                 # Zustand 상태 관리 + localStorage 영속화
+├── utils/backup.ts                   # 백업 미리보기/PIN 유틸리티
+├── utils/remoteBackupApi.ts          # PIN 서버 저장/불러오기 API 클라이언트
+├── utils/layoutEngine.ts             # 실험용 자동 배치 엔진
 ├── utils/gemini.ts                   # Gemini API 유틸리티
 └── components/
     ├── common/Modal.tsx              # 재사용 모달
@@ -121,6 +135,9 @@ src/
         ├── LeftSidebar.tsx           # 가구 추가/목록
         ├── RoomCanvas.tsx            # 인터랙티브 캔버스 (0.5셀 스냅)
         └── RightSidebar.tsx          # 가구 상세/외곽선 편집/물품 관리
+
+functions/
+└── api/pin-backups/                  # Cloudflare Pages Functions (4자리 PIN 저장/불러오기)
 ```
 
 ## 데이터 모델
@@ -159,6 +176,8 @@ src/
 ## 알려진 사항
 
 - 데이터는 브라우저 localStorage에 저장되므로, 브라우저 데이터를 초기화하면 데이터가 삭제됩니다.
+- 백업 모달에서 현재 작업 공간 전체를 4자리 PIN으로 서버에 저장하고 다시 불러올 수 있습니다.
+- 로컬 개발 환경(`npm run dev`)에서는 `.roommanager-dev/pin-backups.json` 파일에 PIN 저장 데이터가 기록됩니다.
 - 이전 버전에서 저장된 데이터는 앱 로드 시 자동으로 마이그레이션됩니다 (`borderStyle`, `borderWidth`, `borderColor`, `floor`, `status` 필드).
 - 상단 바의 `백업` 버튼 또는 방 메뉴의 `데이터 백업 / 복원`에서 전체 데이터를 JSON으로 내보내거나 가져올 수 있습니다.
 - 가져오기 시 `전체 복원`은 현재 작업 공간을 교체하고, `방 추가`는 백업 안의 방들을 새 ID로 복사해 현재 작업 공간 뒤에 붙입니다.
