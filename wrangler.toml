@@ -1,0 +1,7 @@
+name = "roommanager"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-03-12"
+
+[[kv_namespaces]]
+binding = "ROOMMANAGER_PIN_STORE"
+id = "8e829ecdb0234265b81649fdb4d153d9"
