@@ -82,7 +82,10 @@ export default function RoomCanvas() {
   const snap = useCallback((val: number) => Math.round(val / halfCell) * halfCell, [halfCell]);
 
   const clampNodeToRoom = useCallback((node: Konva.Node) => {
-    const box = node.getClientRect({ skipStroke: true });
+    const relativeTo = node.getLayer() ?? node.getParent() ?? undefined;
+    // Keep collision math in room-local coordinates. Stage centering/scale should
+    // not change where furniture can be placed inside the visible room border.
+    const box = node.getClientRect({ skipStroke: true, relativeTo });
     const nextX = node.x()
       + (box.x < 0 ? -box.x : 0)
       - (box.x + box.width > stageWidth ? box.x + box.width - stageWidth : 0);
