@@ -5,6 +5,7 @@ import { useIsMobile } from '../../hooks/useMediaQuery';
 interface TopBarProps {
   onOpenGemini: () => void;
   onOpenStats: () => void;
+  onOpenShoppingList: () => void;
   onOpenRoomAnalysis: () => void;
   onOpenBackup: () => void;
 }
@@ -191,7 +192,7 @@ function SearchResultsPanel({
   );
 }
 
-export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis, onOpenBackup }: TopBarProps) {
+export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, onOpenRoomAnalysis, onOpenBackup }: TopBarProps) {
   const mobile = useIsMobile();
   const room = useRoom();
   const {
@@ -824,8 +825,21 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenRoomAnalysis, 
             </button>
 
             <button
-              onClick={onOpenRoomAnalysis}
+              onClick={onOpenShoppingList}
               className="flex items-center gap-1.5 rounded-lg bg-accent-primary/10 px-3 py-1.5 text-sm font-medium text-accent-secondary hover:bg-accent-primary/20 transition-default"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 3.5h10l-1 5.5H5.5" />
+                <path d="M2 2h1.5l2 8.5h7" />
+                <circle cx="6" cy="13" r="1" />
+                <circle cx="12" cy="13" r="1" />
+              </svg>
+              구매 목록
+            </button>
+
+            <button
+              onClick={onOpenRoomAnalysis}
+              className="flex items-center gap-1.5 rounded-lg border border-border-primary bg-bg-secondary px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-default"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                 <rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" />

@@ -12,6 +12,7 @@ const GeminiModal = lazy(() => import('./components/gemini/GeminiModal'));
 const StatsModal = lazy(() => import('./components/stats/StatsModal'));
 const RoomAnalysisModal = lazy(() => import('./components/gemini/RoomAnalysisModal'));
 const BackupModal = lazy(() => import('./components/common/BackupModal'));
+const ShoppingListModal = lazy(() => import('./components/shopping/ShoppingListModal'));
 
 function ModalFallback() {
   return (
@@ -32,12 +33,14 @@ function MobilePanels({
   selectedFurnitureId,
   onOpenGemini,
   onOpenStats,
+  onOpenShoppingList,
   onOpenRoomAnalysis,
   onDeselect,
 }: {
   selectedFurnitureId: string | null;
   onOpenGemini: () => void;
   onOpenStats: () => void;
+  onOpenShoppingList: () => void;
   onOpenRoomAnalysis: () => void;
   onDeselect: () => void;
 }) {
@@ -62,6 +65,10 @@ function MobilePanels({
         onOpenStats={() => {
           setMobileLeftRequested(false);
           onOpenStats();
+        }}
+        onOpenShoppingList={() => {
+          setMobileLeftRequested(false);
+          onOpenShoppingList();
         }}
         onOpenRoomAnalysis={() => {
           setMobileLeftRequested(false);
@@ -197,6 +204,7 @@ export default function App() {
 
   const [geminiOpen, setGeminiOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [roomAnalysisOpen, setRoomAnalysisOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
 
@@ -209,6 +217,7 @@ export default function App() {
       <TopBar
         onOpenGemini={() => setGeminiOpen(true)}
         onOpenStats={() => setStatsOpen(true)}
+        onOpenShoppingList={() => setShoppingListOpen(true)}
         onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
         onOpenBackup={() => setBackupOpen(true)}
       />
@@ -225,6 +234,7 @@ export default function App() {
           selectedFurnitureId={selectedFurnitureId}
           onOpenGemini={() => setGeminiOpen(true)}
           onOpenStats={() => setStatsOpen(true)}
+          onOpenShoppingList={() => setShoppingListOpen(true)}
           onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
           onDeselect={() => selectFurniture(null)}
         />
@@ -233,6 +243,7 @@ export default function App() {
       <Suspense fallback={<ModalFallback />}>
         {geminiOpen && <GeminiModal isOpen={geminiOpen} onClose={() => setGeminiOpen(false)} />}
         {statsOpen && <StatsModal isOpen={statsOpen} onClose={() => setStatsOpen(false)} />}
+        {shoppingListOpen && <ShoppingListModal isOpen={shoppingListOpen} onClose={() => setShoppingListOpen(false)} />}
         {roomAnalysisOpen && <RoomAnalysisModal isOpen={roomAnalysisOpen} onClose={() => setRoomAnalysisOpen(false)} />}
         {backupOpen && <BackupModal isOpen={backupOpen} onClose={() => setBackupOpen(false)} />}
       </Suspense>

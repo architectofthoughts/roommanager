@@ -2,6 +2,7 @@ interface MobileBottomBarProps {
   furniturePanelOpen: boolean;
   onToggleFurniturePanel: () => void;
   onOpenStats: () => void;
+  onOpenShoppingList: () => void;
   onOpenRoomAnalysis: () => void;
   onOpenGemini: () => void;
 }
@@ -31,6 +32,7 @@ export default function MobileBottomBar({
   furniturePanelOpen,
   onToggleFurniturePanel,
   onOpenStats,
+  onOpenShoppingList,
   onOpenRoomAnalysis,
   onOpenGemini,
 }: MobileBottomBarProps) {
@@ -60,6 +62,18 @@ export default function MobileBottomBar({
           </svg>
         }
         label="대시보드"
+      />
+      <NavButton
+        onClick={onOpenShoppingList}
+        icon={
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 4h12l-1.2 7H6.5" />
+            <path d="M3 3h1.5l2 10h8" />
+            <circle cx="7" cy="16" r="1" />
+            <circle cx="14" cy="16" r="1" />
+          </svg>
+        }
+        label="구매"
       />
       <NavButton
         onClick={onOpenRoomAnalysis}
