@@ -344,6 +344,7 @@ interface RightSidebarProps {
 
 export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps) {
   const { updateFurniture, deleteFurniture, selectFurniture, addItem, updateItem, deleteItem } = useStore();
+  const room = useRoom();
   const furniture = useFurniture();
   const items = useItems();
   const searchQuery = useStore((s) => s.searchQuery);
@@ -377,6 +378,15 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
       packed: 0,
     });
   }, [items]);
+
+  const furnitureOptions = useMemo(
+    () => room.furniture.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      category: CATEGORY_LABELS[entry.category],
+    })),
+    [room.furniture]
+  );
 
   const handleAddItem = () => {
     if (!selectedFurnitureId || !newItemName.trim()) return;
@@ -463,6 +473,22 @@ export default function RightSidebar({ mobile, onOpenGemini }: RightSidebarProps
                       className={`flex-1 px-2 ${itemPy} text-sm bg-bg-primary border border-border-primary rounded outline-none resize-none focus:border-accent-primary`}
                     />
                   </div>
+                  {furnitureOptions.length > 1 && (
+                    <div className="flex gap-1.5 items-center">
+                      <span className="text-[10px] text-text-tertiary shrink-0">위치</span>
+                      <select
+                        value={item.furnitureId}
+                        onChange={(e) => updateItem(item.id, { furnitureId: e.target.value })}
+                        className={`flex-1 min-w-0 px-2 ${itemPy} text-sm bg-bg-primary border border-border-primary rounded outline-none focus:border-accent-primary`}
+                      >
+                        {furnitureOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name} ({option.category})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <button onClick={() => setEditingItemId(null)}
                     className="text-xs text-accent-primary font-medium self-end py-1">완료</button>
                 </div>
