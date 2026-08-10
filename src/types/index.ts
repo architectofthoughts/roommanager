@@ -4,6 +4,22 @@ export type BorderStyle = 'solid' | 'dashed' | 'none';
 export type ItemStatus = 'stored' | 'low-stock' | 'to-buy' | 'packed';
 export type ThemeMode = 'light' | 'dark';
 export type BackupImportMode = 'replace' | 'merge';
+export type RoomSite = 'studio' | 'office' | 'family' | 'etc';
+export type JudgeDecision = 'keep' | 'discard' | 'hold';
+export type JudgeSource = 'photo' | 'manual';
+
+export interface JudgedItem {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  decision: JudgeDecision;
+  roomId: string;
+  roomName: string;
+  furnitureId?: string;
+  source: JudgeSource;
+  decidedAt: string;
+}
 
 export interface Furniture {
   id: string;
@@ -46,6 +62,7 @@ export interface GeminiSuggestion {
 export interface Room {
   id: string;
   name: string;
+  site: RoomSite;
   gridWidth: number;
   gridHeight: number;
   cellSize: number;
@@ -75,6 +92,7 @@ export interface RoomManagerBackup {
   exportedAt: string;
   themeMode: ThemeMode;
   data: RoomManagerData;
+  judgedItems?: JudgedItem[];
 }
 
 export interface RemoteBackupSaveResult {

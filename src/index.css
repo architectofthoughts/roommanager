@@ -27,6 +27,7 @@
   --color-warning-border: #EBCB86;
   --color-warning-text: #9A6A14;
   --color-success-soft: #E8F3E8;
+  --color-success-border: #B4DABB;
   --color-success-text: #2F7A42;
   --color-info-soft: #E8EFFC;
   --color-info-text: #355EAF;
@@ -68,6 +69,7 @@
   --color-warning-border: #8c6b37;
   --color-warning-text: #f0cf91;
   --color-success-soft: #243428;
+  --color-success-border: #3f6549;
   --color-success-text: #9fd3a7;
   --color-info-soft: #233244;
   --color-info-text: #a8c7ff;

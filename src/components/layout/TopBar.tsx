@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useStore, useRoom } from '../../store/useStore';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { SITE_ORDER, SITE_LABELS, SITE_BADGE_CLASS, nextSite } from '../../constants/sites';
+import type { RoomSite } from '../../types';
 
 interface TopBarProps {
   onOpenGemini: () => void;
@@ -8,6 +10,7 @@ interface TopBarProps {
   onOpenShoppingList: () => void;
   onOpenRoomAnalysis: () => void;
   onOpenBackup: () => void;
+  onOpenJudge: () => void;
 }
 
 interface SearchResult {
@@ -192,7 +195,7 @@ function SearchResultsPanel({
   );
 }
 
-export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, onOpenRoomAnalysis, onOpenBackup }: TopBarProps) {
+export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, onOpenRoomAnalysis, onOpenBackup, onOpenJudge }: TopBarProps) {
   const mobile = useIsMobile();
   const room = useRoom();
   const {
@@ -204,6 +207,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
     deleteRoom,
     duplicateRoom,
     renameRoom,
+    setRoomSite,
     searchQuery,
     setSearchQuery,
     themeMode,
@@ -215,6 +219,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
   const [nameValue, setNameValue] = useState(room.name);
   const [roomMenuOpen, setRoomMenuOpen] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
+  const [newRoomSite, setNewRoomSite] = useState<RoomSite>('studio');
   const [showNewRoomInput, setShowNewRoomInput] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [searchPanelState, setSearchPanelState] = useState({ query: '', open: false });
@@ -371,7 +376,7 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
   const handleAddRoom = () => {
     const trimmed = newRoomName.trim();
     if (!trimmed) return;
-    addRoom(trimmed);
+    addRoom(trimmed, newRoomSite);
     setNewRoomName('');
     setShowNewRoomInput(false);
     setRoomMenuOpen(false);
@@ -529,7 +534,12 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
               mobile ? 'w-[calc(100vw-24px)] max-w-[320px]' : 'w-64'
             }`}>
               <div className="max-h-60 overflow-y-auto custom-scrollbar py-1">
-                {rooms.map((currentRoom) => (
+                {SITE_ORDER.filter((site) => rooms.some((r) => r.site === site)).map((site) => (
+                <div key={site}>
+                <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  {SITE_LABELS[site]}
+                </div>
+                {rooms.filter((r) => r.site === site).map((currentRoom) => (
                   <div
                     key={currentRoom.id}
                     className={`group flex cursor-pointer items-center gap-2 px-3 transition-default ${
@@ -563,6 +573,15 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
                       }`}
                       onClick={(event) => event.stopPropagation()}
                     >
+                      <button
+                        onClick={() => setRoomSite(currentRoom.id, nextSite(currentRoom.site))}
+                        className={`flex items-center justify-center rounded px-1.5 text-[9px] font-medium transition-default ${SITE_BADGE_CLASS[currentRoom.site]} ${
+                          mobile ? 'h-8' : 'h-6'
+                        }`}
+                        title="거점 변경 (작업실→회사→본가→미분류 순환)"
+                      >
+                        {SITE_LABELS[currentRoom.site]}
+                      </button>
                       <button
                         onClick={() => {
                           const newName = prompt('방 이름 변경', currentRoom.name);
@@ -611,6 +630,8 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
                     </div>
                   </div>
                 ))}
+                </div>
+                ))}
               </div>
 
               <div className="border-t border-border-primary p-2">
@@ -633,6 +654,16 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
 
                 {showNewRoomInput ? (
                   <div className="flex gap-1.5">
+                    <select
+                      value={newRoomSite}
+                      onChange={(event) => setNewRoomSite(event.target.value as RoomSite)}
+                      className="shrink-0 rounded-md border border-border-primary bg-bg-secondary px-1.5 py-1.5 text-xs outline-none focus:border-accent-primary transition-default"
+                      title="새 방의 거점"
+                    >
+                      {SITE_ORDER.map((site) => (
+                        <option key={site} value={site}>{SITE_LABELS[site]}</option>
+                      ))}
+                    </select>
                     <input
                       ref={newRoomInputRef}
                       type="text"
@@ -856,6 +887,18 @@ export default function TopBar({ onOpenGemini, onOpenStats, onOpenShoppingList, 
                 <path d="M8 1v14M1 8h14M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
               </svg>
               물품 분석
+            </button>
+
+            <button
+              onClick={onOpenJudge}
+              className="flex items-center gap-1.5 rounded-lg bg-accent-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-accent-secondary transition-default"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
+                <path d="M4 6l1.7 1.7L8.2 5" />
+                <path d="M9.5 9.5l3 3M12.5 9.5l-3 3" />
+              </svg>
+              판정
             </button>
           </>
         )}

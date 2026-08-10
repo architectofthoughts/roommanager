@@ -5,6 +5,7 @@ interface MobileBottomBarProps {
   onOpenShoppingList: () => void;
   onOpenRoomAnalysis: () => void;
   onOpenGemini: () => void;
+  onOpenJudge: () => void;
 }
 
 function NavButton({ active, onClick, icon, label }: {
@@ -35,6 +36,7 @@ export default function MobileBottomBar({
   onOpenShoppingList,
   onOpenRoomAnalysis,
   onOpenGemini,
+  onOpenJudge,
 }: MobileBottomBarProps) {
   return (
     <nav
@@ -97,6 +99,17 @@ export default function MobileBottomBar({
           </svg>
         }
         label="물품추가"
+      />
+      <NavButton
+        onClick={onOpenJudge}
+        icon={
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="2" width="16" height="16" rx="2.5" />
+            <path d="M5 7.5l2.2 2.2L10.5 6" />
+            <path d="M12 12l3.5 3.5M15.5 12L12 15.5" />
+          </svg>
+        }
+        label="판정"
       />
     </nav>
   );

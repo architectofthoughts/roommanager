@@ -13,6 +13,7 @@ const StatsModal = lazy(() => import('./components/stats/StatsModal'));
 const RoomAnalysisModal = lazy(() => import('./components/gemini/RoomAnalysisModal'));
 const BackupModal = lazy(() => import('./components/common/BackupModal'));
 const ShoppingListModal = lazy(() => import('./components/shopping/ShoppingListModal'));
+const JudgeModal = lazy(() => import('./components/judge/JudgeModal'));
 
 function ModalFallback() {
   return (
@@ -35,6 +36,7 @@ function MobilePanels({
   onOpenStats,
   onOpenShoppingList,
   onOpenRoomAnalysis,
+  onOpenJudge,
   onDeselect,
 }: {
   selectedFurnitureId: string | null;
@@ -42,6 +44,7 @@ function MobilePanels({
   onOpenStats: () => void;
   onOpenShoppingList: () => void;
   onOpenRoomAnalysis: () => void;
+  onOpenJudge: () => void;
   onDeselect: () => void;
 }) {
   const [mobileLeftRequested, setMobileLeftRequested] = useState(false);
@@ -77,6 +80,10 @@ function MobilePanels({
         onOpenGemini={() => {
           setMobileLeftRequested(false);
           onOpenGemini();
+        }}
+        onOpenJudge={() => {
+          setMobileLeftRequested(false);
+          onOpenJudge();
         }}
       />
 
@@ -207,6 +214,7 @@ export default function App() {
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [roomAnalysisOpen, setRoomAnalysisOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [judgeOpen, setJudgeOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode;
@@ -220,6 +228,7 @@ export default function App() {
         onOpenShoppingList={() => setShoppingListOpen(true)}
         onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
         onOpenBackup={() => setBackupOpen(true)}
+        onOpenJudge={() => setJudgeOpen(true)}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -236,6 +245,7 @@ export default function App() {
           onOpenStats={() => setStatsOpen(true)}
           onOpenShoppingList={() => setShoppingListOpen(true)}
           onOpenRoomAnalysis={() => setRoomAnalysisOpen(true)}
+          onOpenJudge={() => setJudgeOpen(true)}
           onDeselect={() => selectFurniture(null)}
         />
       )}
@@ -246,6 +256,7 @@ export default function App() {
         {shoppingListOpen && <ShoppingListModal isOpen={shoppingListOpen} onClose={() => setShoppingListOpen(false)} />}
         {roomAnalysisOpen && <RoomAnalysisModal isOpen={roomAnalysisOpen} onClose={() => setRoomAnalysisOpen(false)} />}
         {backupOpen && <BackupModal isOpen={backupOpen} onClose={() => setBackupOpen(false)} />}
+        {judgeOpen && <JudgeModal isOpen={judgeOpen} onClose={() => setJudgeOpen(false)} />}
       </Suspense>
     </div>
   );

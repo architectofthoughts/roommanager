@@ -6,6 +6,7 @@ import type {
   Furniture,
   StorageItem,
   Room,
+  RoomSite,
   RoomManagerData,
   FurnitureShape,
   FurnitureCategory,
@@ -14,10 +15,14 @@ import type {
   RoomManagerBackup,
   BackupImportMode,
   BackupImportSummary,
+  JudgedItem,
+  JudgeDecision,
+  JudgeSource,
 } from '../types';
 
 const STORAGE_KEY = 'roommanager-data';
 const THEME_KEY = 'roommanager-theme';
+const JUDGED_KEY = 'roommanager-judged';
 const DEFAULT_ROOM_CONFIG = {
   gridWidth: 20,
   gridHeight: 16,
@@ -27,14 +32,23 @@ const DEFAULT_FURNITURE_OPACITY = 0.33;
 const DEFAULT_ITEM_FLOOR = 1;
 const DEFAULT_ITEM_STATUS: ItemStatus = 'stored';
 
-function createDefaultRoom(name = '내 방'): Room {
+function createDefaultRoom(name = '내 방', site: RoomSite = 'studio'): Room {
   return {
     id: uuidv4(),
     name,
+    site,
     ...DEFAULT_ROOM_CONFIG,
     furniture: [],
     items: [],
   };
+}
+
+function isRoomSite(value: unknown): value is RoomSite {
+  return value === 'studio' || value === 'office' || value === 'family' || value === 'etc';
+}
+
+function isJudgeDecision(value: unknown): value is JudgeDecision {
+  return value === 'keep' || value === 'discard' || value === 'hold';
 }
 
 function getDefaultFurnitureColor(category: FurnitureCategory) {
@@ -120,6 +134,7 @@ function migrateRoom(room: Partial<Room>, index = 0): Room {
   return {
     id: normalizeText(room.id, uuidv4()),
     name,
+    site: isRoomSite(room.site) ? room.site : 'etc',
     gridWidth: normalizePositiveNumber(room.gridWidth, DEFAULT_ROOM_CONFIG.gridWidth),
     gridHeight: normalizePositiveNumber(room.gridHeight, DEFAULT_ROOM_CONFIG.gridHeight),
     cellSize: normalizePositiveNumber(room.cellSize, DEFAULT_ROOM_CONFIG.cellSize),
@@ -204,6 +219,47 @@ function saveData(data: RoomManagerData) {
   }
 }
 
+function migrateJudgedItem(input: unknown): JudgedItem | null {
+  if (!isRecord(input)) return null;
+  const name = normalizeText(input.name, '').trim();
+  if (!name) return null;
+  return {
+    id: normalizeText(input.id, uuidv4()),
+    name,
+    category: normalizeText(input.category, '기타'),
+    quantity: normalizePositiveNumber(input.quantity, 1),
+    decision: isJudgeDecision(input.decision) ? input.decision : 'hold',
+    roomId: normalizeText(input.roomId),
+    roomName: normalizeText(input.roomName, '알 수 없는 방'),
+    furnitureId: typeof input.furnitureId === 'string' ? input.furnitureId : undefined,
+    source: input.source === 'photo' ? 'photo' : 'manual',
+    decidedAt: normalizeText(input.decidedAt, new Date(0).toISOString()),
+  };
+}
+
+function migrateJudgedItems(input: unknown): JudgedItem[] {
+  if (!Array.isArray(input)) return [];
+  return input.map(migrateJudgedItem).filter((item): item is JudgedItem => item !== null);
+}
+
+function loadJudgedItems(): JudgedItem[] {
+  try {
+    const raw = localStorage.getItem(JUDGED_KEY);
+    if (raw) return migrateJudgedItems(JSON.parse(raw));
+  } catch {
+    // Ignore malformed persisted data.
+  }
+  return [];
+}
+
+function saveJudgedItems(judgedItems: JudgedItem[]) {
+  try {
+    localStorage.setItem(JUDGED_KEY, JSON.stringify(judgedItems));
+  } catch {
+    // Ignore persistence failures so the UI can continue running.
+  }
+}
+
 function loadThemeMode(): ThemeMode {
   try {
     const raw = localStorage.getItem(THEME_KEY);
@@ -221,24 +277,26 @@ function saveThemeMode(themeMode: ThemeMode) {
   }
 }
 
-function createBackupSnapshot(data: RoomManagerData, themeMode: ThemeMode): RoomManagerBackup {
+function createBackupSnapshot(data: RoomManagerData, themeMode: ThemeMode, judgedItems: JudgedItem[]): RoomManagerBackup {
   return {
     app: 'roommanager',
     version: 1,
     exportedAt: new Date().toISOString(),
     themeMode,
     data,
+    judgedItems,
   };
 }
 
-function parseBackupPayload(input: unknown): { data: RoomManagerData; themeMode?: ThemeMode } | null {
+function parseBackupPayload(input: unknown): { data: RoomManagerData; themeMode?: ThemeMode; judgedItems?: JudgedItem[] } | null {
   if (!isRecord(input)) return null;
 
   if (input.app === 'roommanager' && input.version === 1 && 'data' in input) {
     const data = migrateRoomManagerData(input.data);
     if (!data) return null;
     const themeMode = input.themeMode === 'dark' || input.themeMode === 'light' ? input.themeMode : undefined;
-    return { data, themeMode };
+    const judgedItems = Array.isArray(input.judgedItems) ? migrateJudgedItems(input.judgedItems) : undefined;
+    return { data, themeMode, judgedItems };
   }
 
   const data = migrateRoomManagerData(input);
@@ -261,9 +319,11 @@ interface RoomStore {
   selectedFurnitureId: string | null;
   searchQuery: string;
   themeMode: ThemeMode;
+  judgedItems: JudgedItem[];
 
   // Room management
-  addRoom: (name: string) => void;
+  addRoom: (name: string, site?: RoomSite) => void;
+  setRoomSite: (roomId: string, site: RoomSite) => void;
   switchRoom: (roomId: string) => void;
   deleteRoom: (roomId: string) => void;
   renameRoom: (roomId: string, name: string) => void;
@@ -284,6 +344,10 @@ interface RoomStore {
   updateItem: (id: string, updates: Partial<StorageItem>) => void;
   deleteItem: (id: string) => void;
   bulkAddItems: (items: Array<Omit<StorageItem, 'id' | 'updatedAt' | 'status'> & { status?: ItemStatus }>) => void;
+
+  // Judge (판정 게이트)
+  recordJudgement: (entries: Array<{ name: string; category: string; quantity: number; decision: JudgeDecision; furnitureId?: string; source: JudgeSource }>) => void;
+  resolveHeldItem: (id: string, decision: 'keep' | 'discard', furnitureId?: string) => void;
 
   // Search
   setSearchQuery: (query: string) => void;
@@ -312,10 +376,11 @@ export const useStore = create<RoomStore>((set, get) => ({
   selectedFurnitureId: null,
   searchQuery: '',
   themeMode: loadThemeMode(),
+  judgedItems: loadJudgedItems(),
 
   // Room management
-  addRoom: (name) => {
-    const newRoom = createDefaultRoom(name);
+  addRoom: (name, site = 'studio') => {
+    const newRoom = createDefaultRoom(name, site);
     set(state => {
       const rooms = [...state.rooms, newRoom];
       const data: RoomManagerData = { rooms, activeRoomId: newRoom.id };
@@ -341,6 +406,15 @@ export const useStore = create<RoomStore>((set, get) => ({
       const data: RoomManagerData = { rooms, activeRoomId };
       saveData(data);
       return { rooms, activeRoomId, selectedFurnitureId: null };
+    });
+  },
+
+  setRoomSite: (roomId, site) => {
+    set(state => {
+      const rooms = state.rooms.map(r => r.id === roomId ? { ...r, site } : r);
+      const data: RoomManagerData = { rooms, activeRoomId: state.activeRoomId };
+      saveData(data);
+      return { rooms };
     });
   },
 
@@ -528,6 +602,67 @@ export const useStore = create<RoomStore>((set, get) => ({
     });
   },
 
+  recordJudgement: (entries) => {
+    set(state => {
+      const active = getActiveRoom(state.rooms, state.activeRoomId);
+      const now = new Date().toISOString();
+      const recorded: JudgedItem[] = entries.map(entry => ({
+        id: uuidv4(),
+        name: entry.name,
+        category: entry.category,
+        quantity: entry.quantity,
+        decision: entry.decision,
+        roomId: active.id,
+        roomName: active.name,
+        furnitureId: entry.furnitureId,
+        source: entry.source,
+        decidedAt: now,
+      }));
+      const judgedItems = [...state.judgedItems, ...recorded];
+      saveJudgedItems(judgedItems);
+      return { judgedItems };
+    });
+  },
+
+  resolveHeldItem: (id, decision, furnitureId) => {
+    set(state => {
+      const target = state.judgedItems.find(item => item.id === id);
+      if (!target || target.decision !== 'hold') return state;
+
+      const judgedItems = state.judgedItems.map(item =>
+        item.id === id
+          ? { ...item, decision, furnitureId, decidedAt: new Date().toISOString() }
+          : item
+      );
+      saveJudgedItems(judgedItems);
+
+      // '남긴다' 판정이면 해당 방의 가구 인벤토리에 실제 물품으로 등록
+      if (decision === 'keep' && furnitureId) {
+        const targetRoom = state.rooms.find(room => room.id === target.roomId);
+        if (targetRoom && targetRoom.furniture.some(f => f.id === furnitureId)) {
+          const item: StorageItem = {
+            id: uuidv4(),
+            furnitureId,
+            name: target.name,
+            quantity: target.quantity,
+            category: target.category,
+            memo: '판정 게이트에서 등록됨 (보류 → 남김)',
+            floor: DEFAULT_ITEM_FLOOR,
+            status: DEFAULT_ITEM_STATUS,
+            updatedAt: new Date().toISOString(),
+          };
+          const rooms = state.rooms.map(room =>
+            room.id === targetRoom.id ? { ...room, items: [...room.items, item] } : room
+          );
+          saveData({ rooms, activeRoomId: state.activeRoomId });
+          return { judgedItems, rooms };
+        }
+      }
+
+      return { judgedItems };
+    });
+  },
+
   setSearchQuery: (query) => set({ searchQuery: query }),
 
   setThemeMode: (themeMode) => {
@@ -542,7 +677,8 @@ export const useStore = create<RoomStore>((set, get) => ({
         rooms: state.rooms,
         activeRoomId: state.activeRoomId,
       },
-      state.themeMode
+      state.themeMode,
+      state.judgedItems
     );
   },
 
@@ -566,14 +702,17 @@ export const useStore = create<RoomStore>((set, get) => ({
       }
 
       const nextThemeMode = parsed.themeMode ?? state.themeMode;
+      const nextJudgedItems = parsed.judgedItems ?? state.judgedItems;
       saveData(parsed.data);
       saveThemeMode(nextThemeMode);
+      saveJudgedItems(nextJudgedItems);
       return {
         rooms: parsed.data.rooms,
         activeRoomId: parsed.data.activeRoomId,
         selectedFurnitureId: null,
         searchQuery: '',
         themeMode: nextThemeMode,
+        judgedItems: nextJudgedItems,
       };
     });
 
